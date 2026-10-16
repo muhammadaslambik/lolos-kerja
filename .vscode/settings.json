@@ -1,0 +1,27 @@
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.tabSize": 2,
+  "editor.wordWrap": "on",
+  "files.autoSave": "afterDelay",
+
+  "git.autofetch": true,
+  "git.ignoreRebaseWarning": true,
+  "git.enableSmartCommit": true,
+  "git.confirmSync": false,
+
+  "window.confirmSaveUntitledWorkspace": false,
+  "terminal.integrated.enableMultiLinePasteWarning": "never",
+
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/.next/**": true,
+    "**/.git/objects/**": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.next": true,
+    "**/package-lock.json": true
+  },
+  "typescript.tsserver.maxTsServerMemory": 3072
+}

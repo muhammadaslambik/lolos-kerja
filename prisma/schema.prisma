@@ -1,0 +1,205 @@
+generator client { provider = "prisma-client-js" }
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role { SEEKER EMPLOYER ADMIN }
+enum Verification { PENDING VERIFIED REJECTED SUSPENDED }
+enum JobType { FULL_TIME PART_TIME CONTRACT INTERNSHIP FREELANCE }
+enum WorkMode { ONSITE HYBRID REMOTE }
+enum JobStatus { DRAFT PENDING_REVIEW ACTIVE CLOSED REJECTED }
+enum Stage { APPLIED SCREENING INTERVIEW OFFERING HIRED REJECTED }
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  fullName    String
+  role        Role     @default(SEEKER)
+  createdAt   DateTime @default(now())
+  profile     SeekerProfile?
+  resumes     Resume[]
+  memberships CompanyMember[]
+  applications Application[]
+  enrollments Enrollment[]
+  orders      Order[]
+}
+
+model SeekerProfile {
+  userId         String  @id
+  user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  headline       String?
+  city           String?
+  educationLevel String?
+  experienceYears Int    @default(0)
+  skills         String[]
+  expectedSalary Int?
+  talentVisible  Boolean @default(false) // persetujuan UU PDP
+}
+
+model Resume {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  content   Json
+  template  String   @default("ats-classic")
+  atsScore  Int?
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+  applications Application[]
+}
+
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  industry    String?
+  city        String?
+  website     String?
+  description String?
+  nib         String?
+  npwp        String?
+  verification Verification @default(PENDING)
+  createdAt   DateTime @default(now())
+  members     CompanyMember[]
+  jobs        Job[]
+}
+
+model CompanyMember {
+  companyId String
+  userId    String
+  memberRole String  @default("recruiter")
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@id([companyId, userId])
+}
+
+model Job {
+  id           String    @id @default(cuid())
+  companyId    String
+  company      Company   @relation(fields: [companyId], references: [id])
+  title        String
+  slug         String    @unique
+  description  String
+  requirements String?
+  jobType      JobType
+  workMode     WorkMode  @default(ONSITE)
+  city         String?
+  salaryMin    Int?
+  salaryMax    Int?
+  minEducation String?
+  minExperienceYears Int @default(0)
+  requiredSkills String[]
+  status       JobStatus @default(DRAFT)
+  isFeatured   Boolean   @default(false)
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
+  applications Application[]
+  @@index([status, city, jobType])
+}
+
+model Application {
+  id         String   @id @default(cuid())
+  jobId      String
+  seekerId   String
+  resumeId   String?
+  stage      Stage    @default(APPLIED)
+  matchScore Int?
+  createdAt  DateTime @default(now())
+  job        Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  seeker     User     @relation(fields: [seekerId], references: [id])
+  resume     Resume?  @relation(fields: [resumeId], references: [id])
+  events     ApplicationEvent[]
+  @@unique([jobId, seekerId])
+}
+
+model ApplicationEvent {
+  id            String   @id @default(cuid())
+  applicationId String
+  fromStage     Stage?
+  toStage       Stage
+  createdAt     DateTime @default(now())
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+model Course {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String?
+  category    String?
+  level       String   @default("beginner")
+  price       Int      @default(0)
+  passScore   Int      @default(70)
+  published   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  modules     Module[]
+  enrollments Enrollment[]
+}
+
+model Module {
+  id       String   @id @default(cuid())
+  courseId String
+  title    String
+  sortOrder Int
+  course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons  Lesson[]
+  quizzes  Quiz[]
+}
+
+model Lesson {
+  id        String @id @default(cuid())
+  moduleId  String
+  title     String
+  type      String @default("text") // text | video
+  content   String?
+  videoRef  String?
+  sortOrder Int
+  module    Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+}
+
+model Quiz {
+  id        String @id @default(cuid())
+  moduleId  String
+  questions Json   // [{q, options[], answerIdx, explanation}]
+  module    Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+}
+
+model Enrollment {
+  id          String   @id @default(cuid())
+  userId      String
+  courseId    String
+  progressPct Int      @default(0)
+  finalScore  Int?
+  status      String   @default("in_progress")
+  enrolledAt  DateTime @default(now())
+  completedAt DateTime?
+  user        User     @relation(fields: [userId], references: [id])
+  course      Course   @relation(fields: [courseId], references: [id])
+  certificate Certificate?
+  @@unique([userId, courseId])
+}
+
+model Certificate {
+  id           String   @id @default(cuid())
+  enrollmentId String   @unique
+  code         String   @unique
+  issuedAt     DateTime @default(now())
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
+}
+
+model Order {
+  id         String   @id @default(cuid())
+  userId     String
+  type       String   // course | job_credit | subscription
+  referenceId String?
+  amount     Int
+  status     String   @default("pending")
+  gateway    String?
+  gatewayRef String?
+  createdAt  DateTime @default(now())
+  paidAt     DateTime?
+  user       User     @relation(fields: [userId], references: [id])
+}
