@@ -1,16 +1,50 @@
-generator client { provider = "prisma-client-js" }
+generator client {
+  provider = "prisma-client-js"
+}
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
-enum Role { SEEKER EMPLOYER ADMIN }
-enum Verification { PENDING VERIFIED REJECTED SUSPENDED }
-enum JobType { FULL_TIME PART_TIME CONTRACT INTERNSHIP FREELANCE }
-enum WorkMode { ONSITE HYBRID REMOTE }
-enum JobStatus { DRAFT PENDING_REVIEW ACTIVE CLOSED REJECTED }
-enum Stage { APPLIED SCREENING INTERVIEW OFFERING HIRED REJECTED }
+enum Role {
+  SEEKER
+  EMPLOYER
+  ADMIN
+}
+enum Verification {
+  PENDING
+  VERIFIED
+  REJECTED
+  SUSPENDED
+}
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  FREELANCE
+}
+enum WorkMode {
+  ONSITE
+  HYBRID
+  REMOTE
+}
+enum JobStatus {
+  DRAFT
+  PENDING_REVIEW
+  ACTIVE
+  CLOSED
+  REJECTED
+}
+enum Stage {
+  APPLIED
+  SCREENING
+  INTERVIEW
+  OFFERING
+  HIRED
+  REJECTED
+}
 
 model User {
   id          String   @id @default(cuid())
