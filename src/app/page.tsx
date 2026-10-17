@@ -1,10 +1,24 @@
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
-import { JOB_TYPE_LABEL, rupiah } from "@/lib/constants";
+import { rupiah } from "@/lib/constants";
+
 export const dynamic = "force-dynamic";
 
+const getLatestJobs = unstable_cache(
+  () =>
+    db.job.findMany({
+      where: { status: "ACTIVE" },
+      orderBy: { createdAt: "desc" },
+      take: 4,
+      select: { id: true, title: true, slug: true, city: true, salaryMin: true, salaryMax: true, company: { select: { name: true } } },
+    }),
+  ["home-latest-jobs"],
+  { revalidate: 60, tags: ["jobs"] },
+);
+
 export default async function Home() {
-  const jobs = await db.job.findMany({ where: { status: "ACTIVE" }, include: { company: true }, orderBy: { createdAt: "desc" }, take: 4 });
+  const jobs = await getLatestJobs();
   return (
     <div className="space-y-12">
       <section className="grid items-center gap-8 md:grid-cols-2">
@@ -14,11 +28,11 @@ export default async function Home() {
             Untuk fresh graduate, yang ingin pindah karier, dan siapa pun yang sedang mencari pekerjaan baru. Lulus kelas, dapat sertifikat, dan terlihat oleh perusahaan.
           </p>
           <div className="mt-6 flex gap-3">
-            <Link href="/courses" className="btn btn-primary">Mulai belajar gratis</Link>
+            <Link href="/register" className="btn btn-primary">Daftar gratis</Link>
             <Link href="/jobs" className="btn btn-ghost">Cari lowongan</Link>
           </div>
         </div>
-        <div className="panel bg-brand text-white">
+        <div className="rounded-lg bg-brand p-5 text-white">
           <p className="mb-3 text-sm font-semibold text-sun">Lowongan terbaru</p>
           <ul className="divide-y divide-white/20">
             {jobs.map((j) => (
@@ -27,7 +41,7 @@ export default async function Home() {
                 <p className="text-sm text-white/80">{j.company.name}, {j.city}. {rupiah(j.salaryMin)} sampai {rupiah(j.salaryMax)}</p>
               </li>
             ))}
-            {jobs.length === 0 && <li className="py-3 text-sm">Belum ada lowongan. Jalankan seed database.</li>}
+            {jobs.length === 0 && <li className="py-3 text-sm">Belum ada lowongan.</li>}
           </ul>
         </div>
       </section>

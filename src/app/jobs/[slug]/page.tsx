@@ -1,11 +1,13 @@
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { JOB_TYPE_LABEL, rupiah } from "@/lib/constants";
 import ApplyButton from "@/components/ApplyButton";
+
 export const dynamic = "force-dynamic";
 
-const getJob = (slug: string) => db.job.findUnique({ where: { slug }, include: { company: true } });
+const getJob = cache((slug: string) => db.job.findUnique({ where: { slug }, include: { company: true } }));
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const job = await getJob(params.slug);
@@ -15,7 +17,6 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 export default async function JobDetail({ params }: { params: { slug: string } }) {
   const job = await getJob(params.slug);
   if (!job || job.status !== "ACTIVE") notFound();
-  // Structured data agar tampil di Google for Jobs
   const jsonLd = {
     "@context": "https://schema.org", "@type": "JobPosting", title: job.title, description: job.description,
     datePosted: job.createdAt.toISOString(), employmentType: job.jobType,

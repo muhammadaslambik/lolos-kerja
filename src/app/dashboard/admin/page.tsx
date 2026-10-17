@@ -1,21 +1,29 @@
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { db } from "@/lib/db";
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Dashboard Admin" };
+import { requireRole } from "@/lib/session";
 
-async function setVerification(formData: FormData) {
+export const dynamic = "force-dynamic";
+export const metadata = { title: "Dasbor Admin" };
+
+async function setVerification(fd: FormData) {
   "use server";
-  const id = String(formData.get("id"));
-  const status = String(formData.get("status")) as "VERIFIED" | "REJECTED";
+  await requireRole("ADMIN");
+  const id = String(fd.get("id"));
+  const status = String(fd.get("status"));
+  if (status !== "VERIFIED" && status !== "REJECTED") return;
   await db.company.update({ where: { id }, data: { verification: status } });
+  revalidateTag("jobs");
   revalidatePath("/dashboard/admin");
 }
 
 export default async function AdminDashboard() {
+  await requireRole("ADMIN");
   const [users, jobs, hired, enrolls, done, companies] = await Promise.all([
-    db.user.count(), db.job.count({ where: { status: "ACTIVE" } }),
+    db.user.count(),
+    db.job.count({ where: { status: "ACTIVE" } }),
     db.application.count({ where: { stage: "HIRED" } }),
-    db.enrollment.count(), db.enrollment.count({ where: { status: "completed" } }),
+    db.enrollment.count(),
+    db.enrollment.count({ where: { status: "completed" } }),
     db.company.findMany({ where: { verification: "PENDING" } }),
   ]);
   const stats: [string, string | number][] = [
@@ -32,7 +40,7 @@ export default async function AdminDashboard() {
         <h2 className="font-bold">Perusahaan menunggu verifikasi</h2>
         <ul className="mt-3 space-y-2">
           {companies.map((c) => (
-            <li key={c.id} className="flex items-center justify-between text-sm">
+            <li key={c.id} className="flex items-center justify-between gap-2 text-sm">
               <span>{c.name}</span>
               <form action={setVerification} className="flex gap-2">
                 <input type="hidden" name="id" value={c.id} />

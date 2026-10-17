@@ -1,12 +1,41 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --ink: 22 34 46;
+  --paper: 246 247 244;
+  --surface: 255 255 255;
+  --line: 221 226 221;
+  --brand: 14 90 102;
+  --brand-dark: 10 66 75;
+  --brand-soft: 220 235 236;
+  --brand-ink: 14 90 102;
+  --sun: 242 179 61;
+  --sun-soft: 251 235 200;
+}
+.dark {
+  color-scheme: dark;
+  --ink: 232 238 242;
+  --paper: 15 22 28;
+  --surface: 24 34 43;
+  --line: 43 57 68;
+  --brand: 20 120 138;
+  --brand-dark: 16 98 113;
+  --brand-soft: 22 52 61;
+  --brand-ink: 110 208 222;
+  --sun: 242 179 61;
+  --sun-soft: 70 55 20;
+}
+
 body { @apply bg-paper text-ink antialiased; }
-:focus-visible { outline: 3px solid #F2B33D; outline-offset: 2px; }
+:focus-visible { outline: 3px solid rgb(var(--sun)); outline-offset: 2px; }
+
 @layer components {
-  .btn { @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold transition-colors; }
+  .btn { @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-60; }
   .btn-primary { @apply bg-brand text-white hover:bg-brand-dark; }
-  .btn-ghost { @apply border border-line bg-white hover:bg-brand-soft; }
-  .panel { @apply rounded-lg border border-line bg-white p-5; }
-  .tag { @apply rounded bg-brand-soft px-2 py-0.5 text-xs font-medium text-brand-dark; }
+  .btn-ghost { @apply border border-line bg-surface hover:bg-brand-soft; }
+  .panel { @apply rounded-lg border border-line bg-surface p-5; }
+  .tag { @apply rounded bg-brand-soft px-2 py-0.5 text-xs font-medium text-brand-ink; }
+  .field { @apply w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink/40; }
 }

@@ -13,14 +13,14 @@ Platform pelatihan kerja, lowongan, dan penghubung perusahaan dengan pelamar di 
 - Skema database lengkap (user, perusahaan, lowongan, lamaran, kelas, modul, kuis, sertifikat, order)
 
 ## Belum dibuat (urutan pengerjaan disarankan)
-1. Login nyata (Auth.js / Clerk). Saat ini `src/lib/demo-user.ts` memakai pengguna contoh dari seed.
+1. Reset kata sandi, verifikasi email, dan batas percobaan login
 2. Pendaftaran kelas, pemutar materi, kuis, sertifikat PDF
 3. Form pasang lowongan dan upload dokumen NIB/NPWP (Cloudflare R2 / S3)
 4. AI Resume Builder (Claude API) dan skor ATS
 5. Talent Pool, pembayaran (Midtrans / Xendit), notifikasi email/WhatsApp
 6. Drag-and-drop kanban (`dnd-kit`)
 
-> Penting: sebelum rilis publik, **aktifkan autentikasi** dan lindungi semua route `/dashboard/*` serta server action.
+> Login: email dan kata sandi (bcrypt) dengan sesi JWT di cookie httpOnly. Variabel `AUTH_SECRET` dan `ADMIN_EMAIL` wajib diisi.
 
 ## Menjalankan di komputer
 Prasyarat: Node.js 20+, Docker (atau PostgreSQL lokal).

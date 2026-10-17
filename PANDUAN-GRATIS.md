@@ -36,8 +36,8 @@ Semua langkah dilakukan lewat browser. Laptop hanya dipakai untuk mengunggah kod
 2. Buka **Environment Variables** dan isi:
    - `DATABASE_URL`: string Pooled
    - `DIRECT_URL`: string Direct
-   - `ADMIN_USER`: misalnya `admin`
-   - `ADMIN_PASSWORD`: kata sandi panjang buatan Anda
+   - `AUTH_SECRET`: teks acak panjang (buat dengan `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`)
+   - `ADMIN_EMAIL`: email Anda; akun yang mendaftar dengan email ini otomatis menjadi admin
 3. Klik **Deploy**. Hasilnya: `https://lolos-kerja-xxxx.vercel.app`, aktif 24 jam walau laptop mati. Setiap `git push` ke `main` otomatis memperbarui website.
 4. Di Vercel, buka **Settings > Functions**, lalu atur region ke Singapore (`sin1`) bila tersedia agar lebih cepat.
 
@@ -48,5 +48,5 @@ Semua langkah dilakukan lewat browser. Laptop hanya dipakai untuk mengunggah kod
 - Alamat `*.vercel.app` gratis. Domain sendiri (misalnya `.id`) berbayar di registrar.
 
 ## Keamanan sebelum dibagikan ke publik
-- Dashboard admin dan perusahaan sudah dilindungi kata sandi (Basic Auth). Dashboard pelamar dan tombol "Lamar" masih memakai pengguna contoh, sehingga cocok untuk **demo**, bukan untuk data pelamar sungguhan.
-- Untuk menerima pengguna nyata, pasang login (Auth.js atau Clerk, keduanya punya paket gratis) dan patuhi UU PDP.
+- Login nyata sudah ada (email dan kata sandi, sesi 7 hari). Daftar pertama kali dengan `ADMIN_EMAIL` agar menjadi admin.
+- Belum ada batas percobaan login, verifikasi email, atau reset kata sandi. Tambahkan sebelum peluncuran besar, dan patuhi UU PDP.
