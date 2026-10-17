@@ -11,7 +11,7 @@ export default async function SeekerDashboard() {
   const s = await requireRole("SEEKER");
   const [profile, enrollments, apps] = await Promise.all([
     db.seekerProfile.findUnique({ where: { userId: s.uid } }),
-    db.enrollment.findMany({ where: { userId: s.uid }, include: { course: true } }),
+    db.enrollment.findMany({ where: { userId: s.uid }, include: { course: true, certificate: true } }),
     db.application.findMany({ where: { seekerId: s.uid }, include: { job: { include: { company: true } } }, orderBy: { createdAt: "desc" } }),
   ]);
   return (
@@ -28,6 +28,9 @@ export default async function SeekerDashboard() {
                 {e.progressPct}% selesai
                 {e.status === "completed" && e.finalScore !== null && ` | Lulus, nilai ${e.finalScore}`}
               </p>
+              {e.certificate && (
+                <a href={`/api/certificates/${e.certificate.code}/pdf`} className="mt-1 inline-block text-xs underline">Unduh sertifikat</a>
+              )}
             </div>
           ))}
           {enrollments.length === 0 && <p className="mt-2 text-sm">Belum ada kelas. Pilih kelas pertama Anda di menu Kelas.</p>}

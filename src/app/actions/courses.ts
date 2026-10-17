@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/session";
 import { loadQuestions, orderedLessons } from "@/lib/course-utils";
+import { issueCertificate } from "@/lib/certificate";
 
 export async function enrollCourse(fd: FormData): Promise<void> {
   const s = await requireRole("SEEKER");
@@ -96,7 +97,23 @@ export async function submitQuiz(fd: FormData): Promise<void> {
       ...(passed && enrollment.status !== "completed" ? { status: "completed", completedAt: new Date() } : {}),
     },
   });
+  if (passed) await issueCertificate(enrollment.id);
   revalidatePath("/dashboard/seeker");
   revalidatePath(`/courses/${slug}`);
   redirect(`/courses/${slug}/kuis?benar=${correct}&total=${questions.length}&skor=${score}`);
+}
+
+export async function claimCertificate(fd: FormData): Promise<void> {
+  const s = await requireRole("SEEKER");
+  const slug = String(fd.get("slug") ?? "");
+  const course = await db.course.findFirst({ where: { slug, published: true } });
+  if (!course) return redirect("/courses");
+  const enrollment = await db.enrollment.findUnique({
+    where: { userId_courseId: { userId: s.uid, courseId: course.id } },
+  });
+  if (!enrollment || enrollment.status !== "completed") return redirect(`/courses/${slug}`);
+  await issueCertificate(enrollment.id);
+  revalidatePath(`/courses/${slug}`);
+  revalidatePath("/dashboard/seeker");
+  redirect(`/courses/${slug}`);
 }

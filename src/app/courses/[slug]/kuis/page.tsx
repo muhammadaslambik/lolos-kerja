@@ -50,8 +50,8 @@ export default async function QuizPage({
       </p>
 
       {showResult && passed && (
-        <p role="status" className="mt-3 rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-700">
-          Selamat, Anda lulus. Benar {benar} dari {total} soal, nilai {skor}. Sertifikat akan tersedia di tahap berikutnya.
+        <p role="status" className="mt-3 rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-ink">
+          Selamat, Anda lulus. Benar {benar} dari {total} soal, nilai {skor}. Sertifikat Anda bisa diunduh dari halaman kelas.
         </p>
       )}
       {showResult && !passed && (

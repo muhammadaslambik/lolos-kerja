@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { rupiah } from "@/lib/constants";
-import { enrollCourse } from "@/app/actions/courses";
+import { claimCertificate, enrollCourse } from "@/app/actions/courses";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Detail Kelas" };
@@ -40,6 +40,7 @@ export default async function CourseDetail({
   const pct = flat.length ? Math.round((flat.filter((l) => done.has(l.id)).length / flat.length) * 100) : 0;
   const nextLesson = flat.find((l) => !done.has(l.id)) ?? flat[0];
   const quizCount = enrollment ? await db.quiz.count({ where: { module: { courseId: course.id } } }) : 0;
+  const certificate = enrollment ? await db.certificate.findUnique({ where: { enrollmentId: enrollment.id } }) : null;
 
   return (
     <div className="max-w-3xl">
@@ -56,7 +57,7 @@ export default async function CourseDetail({
         <p role="alert" className="mt-3 rounded-md border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-600">{searchParams.error}</p>
       )}
       {searchParams.selesai && (
-        <p role="status" className="mt-3 rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-700">
+        <p role="status" className="mt-3 rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-ink">
           Semua materi sudah selesai. Lanjutkan dengan kuis akhir di bawah.
         </p>
       )}
@@ -84,6 +85,22 @@ export default async function CourseDetail({
                 <Link href={`/courses/${course.slug}/kuis`} className="btn btn-primary mt-2 inline-block">
                   {enrollment.finalScore === null ? "Kerjakan kuis akhir" : "Ulangi kuis akhir"}
                 </Link>
+              </div>
+            )}
+            {enrollment.status === "completed" && (
+              <div className="mt-4 border-t border-line pt-3">
+                <p className="text-sm font-medium">Sertifikat</p>
+                {certificate ? (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <a href={`/api/certificates/${certificate.code}/pdf`} className="btn btn-primary">Unduh sertifikat PDF</a>
+                    <Link href={`/verify/${certificate.code}`} className="btn btn-ghost">Halaman verifikasi</Link>
+                  </div>
+                ) : (
+                  <form action={claimCertificate} className="mt-2">
+                    <input type="hidden" name="slug" value={course.slug} />
+                    <button className="btn btn-primary">Terbitkan sertifikat</button>
+                  </form>
+                )}
               </div>
             )}
           </div>

@@ -39,7 +39,7 @@ export default async function EmployerJobs({ searchParams }: { searchParams: { o
           {company.verification !== "VERIFIED" && " Lowongan berstatus Menunggu peninjauan akan tayang setelah perusahaan diverifikasi."}
         </p>
       )}
-      {ok && <p role="status" className="mb-3 rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-700">{ok}</p>}
+      {ok && <p role="status" className="mb-3 rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-ink">{ok}</p>}
 
       {jobs.length === 0 && <p className="panel text-sm">Belum ada lowongan. Klik Pasang lowongan untuk membuat yang pertama.</p>}
 
