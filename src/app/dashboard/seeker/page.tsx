@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/session";
 import { STAGE_LABEL, StageKey } from "@/lib/constants";
@@ -21,7 +22,7 @@ export default async function SeekerDashboard() {
           <h2 className="font-bold">Lanjutkan belajar</h2>
           {enrollments.map((e) => (
             <div key={e.id} className="mt-3">
-              <p className="text-sm font-medium">{e.course.title}</p>
+              <Link href={`/courses/${e.course.slug}`} className="text-sm font-medium underline">{e.course.title}</Link>
               <div className="mt-1 h-2 rounded bg-line"><div className="h-2 rounded bg-brand" style={{ width: `${e.progressPct}%` }} /></div>
               <p className="mt-1 text-xs text-ink/60">{e.progressPct}% selesai</p>
             </div>

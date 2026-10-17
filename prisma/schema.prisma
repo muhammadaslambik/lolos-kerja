@@ -193,6 +193,7 @@ model Lesson {
   videoRef  String?
   sortOrder Int
   module    Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progress  LessonProgress[]
 }
 
 model Quiz {
@@ -214,7 +215,17 @@ model Enrollment {
   user        User     @relation(fields: [userId], references: [id])
   course      Course   @relation(fields: [courseId], references: [id])
   certificate Certificate?
+  progress    LessonProgress[]
   @@unique([userId, courseId])
+}
+
+model LessonProgress {
+  enrollmentId String
+  lessonId     String
+  completedAt  DateTime   @default(now())
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  lesson       Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  @@id([enrollmentId, lessonId])
 }
 
 model Certificate {

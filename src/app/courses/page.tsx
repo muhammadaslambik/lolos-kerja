@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
 import { rupiah } from "@/lib/constants";
@@ -9,9 +10,9 @@ const getCourses = unstable_cache(
   () =>
     db.course.findMany({
       where: { published: true },
-      select: { id: true, title: true, description: true, category: true, price: true, passScore: true, _count: { select: { modules: true } } },
+      select: { id: true, slug: true, title: true, description: true, category: true, price: true, passScore: true, _count: { select: { modules: true } } },
     }),
-  ["courses-list"],
+  ["courses-list-v2"],
   { revalidate: 60, tags: ["courses"] },
 );
 
@@ -28,7 +29,7 @@ export default async function Courses() {
             <p className="mt-1 flex-1 text-sm text-ink/70">{c.description}</p>
             <p className="mt-3 text-sm">{c._count.modules} modul. Nilai lulus {c.passScore}</p>
             <p className="mt-1 font-bold">{c.price === 0 ? "Gratis" : rupiah(c.price)}</p>
-            <button className="btn btn-primary mt-3" disabled title="Pendaftaran kelas dibangun di fase berikutnya">Daftar kelas</button>
+            <Link href={`/courses/${c.slug}`} className="btn btn-primary mt-3 text-center">Lihat kelas</Link>
           </div>
         ))}
       </div>
