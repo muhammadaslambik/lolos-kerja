@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/session";
@@ -31,6 +32,10 @@ export default async function EmployerDashboard() {
   return (
     <div>
       <h1 className="mb-2 text-2xl font-extrabold">Pelamar masuk</h1>
+      <div className="mb-3 flex flex-wrap gap-2">
+        <Link href="/dashboard/employer/jobs/new" className="btn btn-primary">Pasang lowongan</Link>
+        <Link href="/dashboard/employer/jobs" className="btn btn-ghost">Lowongan saya</Link>
+      </div>
       {companies.map((c) => (
         <p key={c.id} className="mb-3 text-sm text-ink/70">
           {c.name}: <span className="tag">{VERIFICATION_LABEL[c.verification]}</span>
