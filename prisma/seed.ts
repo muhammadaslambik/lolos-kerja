@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 const db = new PrismaClient();
 
 type ExtraModule = { title: string; sortOrder: number; lessons: { title: string; content: string }[] };
@@ -81,6 +81,33 @@ const extra: Record<string, ExtraModule[]> = {
   ],
 };
 
+type Q = { q: string; options: string[]; answerIdx: number; explanation: string };
+
+const quizzes: Record<string, Record<string, Q[]>> = {
+  "excel-untuk-admin": {
+    "Rumus Dasar": [
+      { q: "Rumus mana yang menjumlah angka di sel B2 sampai B10?", options: ["=TOTAL(B2:B10)", "=SUM(B2:B10)", "=ADD(B2:B10)", "=COUNT(B2:B10)"], answerIdx: 1, explanation: "SUM adalah rumus untuk menjumlah. COUNT hanya menghitung banyaknya angka." },
+      { q: "Apa arti FALSE di rumus VLOOKUP?", options: ["Mencari nilai yang mendekati", "Mengurutkan data", "Hanya mencari nilai yang persis sama", "Menghapus data yang tidak ketemu"], answerIdx: 2, explanation: "FALSE membuat Excel hanya mencari nilai yang persis sama." },
+      { q: "Rumus ditolak pada komputer berpengaturan wilayah Indonesia. Apa yang sebaiknya dicoba?", options: ["Mengganti koma dengan titik koma", "Menghapus tanda sama dengan", "Menulis rumus dengan huruf kecil semua", "Menghapus kolom"], answerIdx: 0, explanation: "Pada sebagian pengaturan wilayah, pemisah antar-argumen adalah titik koma." },
+    ],
+    "Merapikan Data": [
+      { q: "Pintasan keyboard untuk mengubah data menjadi tabel adalah...", options: ["Ctrl + P", "Ctrl + S", "Ctrl + T", "Ctrl + Z"], answerIdx: 2, explanation: "Ctrl + T membuat tabel dari data yang dipilih." },
+      { q: "Apa yang sebaiknya dilakukan sebelum memakai Remove Duplicates?", options: ["Menutup Excel", "Menyimpan salinan file", "Menghapus judul kolom", "Mengganti nama sheet"], answerIdx: 1, explanation: "Baris yang terhapus tidak otomatis kembali, jadi simpan salinan lebih dulu." },
+    ],
+  },
+  "dasar-digital-marketing": {
+    "Konten Media Sosial": [
+      { q: "Apa yang sebaiknya ditentukan sebelum membuat konten?", options: ["Warna logo", "Target pasar", "Jumlah pengikut pesaing", "Nama hashtag"], answerIdx: 1, explanation: "Target pasar yang jelas memudahkan memilih gaya bahasa dan jenis konten." },
+      { q: "Apa yang dimaksud kalender konten?", options: ["Daftar hari libur nasional", "Laporan penjualan bulanan", "Jadwal unggahan yang dibuat di awal", "Daftar pelanggan"], answerIdx: 2, explanation: "Kalender konten adalah jadwal unggahan yang direncanakan lebih dulu." },
+    ],
+    "Mengukur Hasil": [
+      { q: "Jangkauan (reach) adalah...", options: ["Jumlah akun berbeda yang melihat konten", "Jumlah komentar", "Jumlah pembelian", "Jumlah unggahan dalam sebulan"], answerIdx: 0, explanation: "Reach menghitung akun yang berbeda, bukan berapa kali konten tampil." },
+      { q: "Konversi berarti...", options: ["Orang menyukai unggahan", "Orang melakukan tindakan akhir seperti membeli atau mendaftar", "Orang mengikuti akun", "Orang menyimpan unggahan"], answerIdx: 1, explanation: "Konversi adalah tindakan akhir yang diharapkan dari audiens." },
+      { q: "Agar angka laporan lebih bermakna, sebaiknya dibandingkan dengan...", options: ["Akun pesaing yang paling besar", "Periode sebelumnya", "Angka tahun lalu saja", "Jumlah pengikut"], answerIdx: 1, explanation: "Membandingkan dengan periode sebelumnya menunjukkan naik atau turunnya hasil." },
+    ],
+  },
+};
+
 async function main() {
   await db.user.upsert({ where: { email: "admin@loloskerja.id" }, update: {}, create: { email: "admin@loloskerja.id", fullName: "Admin Lolos Kerja", role: "ADMIN" } });
   const seeker = await db.user.upsert({
@@ -135,6 +162,19 @@ async function main() {
           lessons: { create: m.lessons.map((l, i) => ({ title: l.title, type: "text", content: l.content, sortOrder: i + 1 })) },
         },
       });
+    }
+  }
+
+  // Soal kuis. Aman dijalankan berulang: modul yang sudah punya kuis dilewati.
+  for (const [slug, byModule] of Object.entries(quizzes)) {
+    const course = await db.course.findUnique({ where: { slug } });
+    if (!course) continue;
+    for (const [title, questions] of Object.entries(byModule)) {
+      const mod = await db.module.findFirst({ where: { courseId: course.id, title } });
+      if (!mod) continue;
+      const has = await db.quiz.findFirst({ where: { moduleId: mod.id } });
+      if (has) continue;
+      await db.quiz.create({ data: { moduleId: mod.id, questions: questions as unknown as Prisma.InputJsonValue } });
     }
   }
 

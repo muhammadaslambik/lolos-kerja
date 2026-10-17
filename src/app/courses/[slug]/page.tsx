@@ -39,6 +39,7 @@ export default async function CourseDetail({
   const flat = course.modules.flatMap((m) => m.lessons);
   const pct = flat.length ? Math.round((flat.filter((l) => done.has(l.id)).length / flat.length) * 100) : 0;
   const nextLesson = flat.find((l) => !done.has(l.id)) ?? flat[0];
+  const quizCount = enrollment ? await db.quiz.count({ where: { module: { courseId: course.id } } }) : 0;
 
   return (
     <div className="max-w-3xl">
@@ -56,7 +57,7 @@ export default async function CourseDetail({
       )}
       {searchParams.selesai && (
         <p role="status" className="mt-3 rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-700">
-          Semua materi sudah selesai. Kuis dan sertifikat akan tersedia di tahap berikutnya.
+          Semua materi sudah selesai. Lanjutkan dengan kuis akhir di bawah.
         </p>
       )}
 
@@ -70,6 +71,20 @@ export default async function CourseDetail({
               <Link href={`/courses/${course.slug}/belajar/${nextLesson.id}`} className="btn btn-primary mt-3 inline-block">
                 {pct === 0 ? "Mulai belajar" : "Lanjutkan belajar"}
               </Link>
+            )}
+            {pct === 100 && quizCount > 0 && (
+              <div className="mt-4 border-t border-line pt-3">
+                <p className="text-sm font-medium">
+                  Kuis akhir{" "}
+                  {enrollment.status === "completed" && <span className="tag">Lulus</span>}
+                </p>
+                {enrollment.finalScore !== null && (
+                  <p className="mt-1 text-xs text-ink/60">Nilai terbaik: {enrollment.finalScore}. Nilai lulus: {course.passScore}.</p>
+                )}
+                <Link href={`/courses/${course.slug}/kuis`} className="btn btn-primary mt-2 inline-block">
+                  {enrollment.finalScore === null ? "Kerjakan kuis akhir" : "Ulangi kuis akhir"}
+                </Link>
+              </div>
             )}
           </div>
         ) : !s ? (

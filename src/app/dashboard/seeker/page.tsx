@@ -24,7 +24,10 @@ export default async function SeekerDashboard() {
             <div key={e.id} className="mt-3">
               <Link href={`/courses/${e.course.slug}`} className="text-sm font-medium underline">{e.course.title}</Link>
               <div className="mt-1 h-2 rounded bg-line"><div className="h-2 rounded bg-brand" style={{ width: `${e.progressPct}%` }} /></div>
-              <p className="mt-1 text-xs text-ink/60">{e.progressPct}% selesai</p>
+              <p className="mt-1 text-xs text-ink/60">
+                {e.progressPct}% selesai
+                {e.status === "completed" && e.finalScore !== null && ` | Lulus, nilai ${e.finalScore}`}
+              </p>
             </div>
           ))}
           {enrollments.length === 0 && <p className="mt-2 text-sm">Belum ada kelas. Pilih kelas pertama Anda di menu Kelas.</p>}
