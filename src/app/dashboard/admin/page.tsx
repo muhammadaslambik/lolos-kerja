@@ -11,9 +11,19 @@ async function setVerification(fd: FormData) {
   const id = String(fd.get("id"));
   const status = String(fd.get("status"));
   if (status !== "VERIFIED" && status !== "REJECTED") return;
-  await db.company.update({ where: { id }, data: { verification: status } });
+  if (status === "VERIFIED") {
+    // Perusahaan disetujui: lowongan yang menunggu peninjauan ikut tayang
+    await db.$transaction([
+      db.company.update({ where: { id }, data: { verification: "VERIFIED" } }),
+      db.job.updateMany({ where: { companyId: id, status: "PENDING_REVIEW" }, data: { status: "ACTIVE" } }),
+    ]);
+  } else {
+    await db.company.update({ where: { id }, data: { verification: "REJECTED" } });
+  }
   revalidateTag("jobs");
+  revalidatePath("/jobs");
   revalidatePath("/dashboard/admin");
+  revalidatePath("/dashboard/employer/jobs");
 }
 
 export default async function AdminDashboard() {
