@@ -17,6 +17,7 @@ export default async function SeekerDashboard() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-extrabold">Halo, {s.name}</h1>
+      <p className="text-sm"><Link href="/dashboard/seeker/cv" className="btn btn-ghost inline-block">Asisten CV</Link></p>
       <div className="grid gap-4 md:grid-cols-2">
         <section className="panel">
           <h2 className="font-bold">Lanjutkan belajar</h2>
