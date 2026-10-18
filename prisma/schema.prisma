@@ -249,3 +249,10 @@ model Order {
   paidAt     DateTime?
   user       User     @relation(fields: [userId], references: [id])
 }
+
+model LoginThrottle {
+  key         String    @id
+  count       Int       @default(0)
+  windowStart DateTime  @default(now())
+  lockedUntil DateTime?
+}

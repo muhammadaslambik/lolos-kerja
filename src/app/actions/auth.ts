@@ -1,9 +1,11 @@
 "use server";
 import bcrypt from "bcryptjs";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { clearSession, setSession } from "@/lib/session";
 import { dashboardPath, type RoleKey } from "@/lib/constants";
+import { EMAIL_MAX, IP_MAX, clearKey, lockWaitMs, recordFailure } from "@/lib/login-throttle";
 
 export type AuthState = { error?: string };
 
@@ -12,6 +14,15 @@ const text = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const secretOk = () => (process.env.AUTH_SECRET ?? "").length >= 16;
 const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "perusahaan";
+
+// Hash semu agar waktu respons sama, baik email terdaftar maupun tidak
+let dummy: string | undefined;
+const dummyHash = () => {
+  if (!dummy) dummy = bcrypt.hashSync("bukan-kata-sandi-sungguhan", 10);
+  return dummy;
+};
+
+const clientIp = () => (headers().get("x-forwarded-for") ?? "").split(",")[0].trim();
 
 export async function register(_: AuthState, fd: FormData): Promise<AuthState> {
   if (!secretOk()) return { error: "Server belum dikonfigurasi (AUTH_SECRET belum diatur)." };
@@ -58,10 +69,27 @@ export async function login(_: AuthState, fd: FormData): Promise<AuthState> {
   const password = String(fd.get("password") ?? "");
   const next = text(fd, "next");
 
-  const user = email ? await db.user.findUnique({ where: { email } }) : null;
-  const ok = user?.passwordHash ? await bcrypt.compare(password, user.passwordHash) : false;
-  if (!user || !ok) return { error: "Email atau kata sandi salah." };
+  // Batas percobaan: per email dan per alamat IP
+  const emailKey = `email:${email.slice(0, 200)}`;
+  const ip = clientIp();
+  const ipKey = ip ? `ip:${ip.slice(0, 64)}` : "";
+  const keys = ipKey ? [emailKey, ipKey] : [emailKey];
+  const wait = email ? await lockWaitMs(keys) : 0;
+  if (wait > 0) {
+    const minutes = Math.max(1, Math.ceil(wait / 60000));
+    return { error: `Terlalu banyak percobaan masuk. Coba lagi dalam ${minutes} menit.` };
+  }
 
+  const user = email ? await db.user.findUnique({ where: { email } }) : null;
+  const hash = user?.passwordHash ?? dummyHash();
+  const match = await bcrypt.compare(password, hash);
+  if (!user || !user.passwordHash || !match) {
+    if (email) await recordFailure(emailKey, EMAIL_MAX);
+    if (ipKey) await recordFailure(ipKey, IP_MAX);
+    return { error: "Email atau kata sandi salah." };
+  }
+
+  await clearKey(emailKey);
   await setSession({ uid: user.id, role: user.role, name: user.fullName });
   redirect(next.startsWith("/") && !next.startsWith("//") ? next : dashboardPath(user.role));
 }
