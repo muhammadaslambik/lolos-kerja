@@ -66,10 +66,20 @@ export default async function SeekerDashboard() {
                 <p className="font-medium">{i.company.name}{i.job ? `, untuk posisi ${i.job.title}` : ""}</p>
                 <p className="text-xs text-ink/70">{i.message}</p>
                 {i.status === "sent" ? (
-                  <form action={respondInvite} className="mt-2 flex flex-wrap gap-2">
+                  <form action={respondInvite} className="mt-2 flex flex-wrap items-start gap-2">
                     <input type="hidden" name="id" value={i.id} />
                     <button name="decision" value="accept" className="btn btn-primary !py-1 text-xs">Terima dan bagikan email saya</button>
-                    <button name="decision" value="decline" className="btn btn-ghost !py-1 text-xs">Tolak</button>
+                    <details className="group">
+                      <summary className="btn btn-ghost cursor-pointer list-none !py-1 text-xs [&::-webkit-details-marker]:hidden">Tolak</summary>
+                      <div className="mt-2 max-w-sm rounded-md border border-red-500/40 bg-red-500/10 p-3 text-xs">
+                        <p className="font-semibold">Yakin ingin menolak undangan ini?</p>
+                        <p className="mt-1 text-ink/70">
+                          Keputusan ini tidak dapat diubah, dan {i.company.name} tidak dapat mengundang Anda lagi. Email Anda tidak dibagikan.
+                        </p>
+                        <button name="decision" value="decline" className="btn btn-ghost mt-2 !py-1 text-xs">Ya, tolak undangan</button>
+                        <p className="mt-2 text-ink/60">Untuk membatalkan, klik tombol Tolak sekali lagi.</p>
+                      </div>
+                    </details>
                   </form>
                 ) : (
                   <span className="tag mt-1 inline-block">{i.status === "accepted" ? "Anda menerima" : "Anda menolak"}</span>
