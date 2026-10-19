@@ -5,6 +5,7 @@ import { STAGE_LABEL, StageKey } from "@/lib/constants";
 import ProfileForm from "@/components/ProfileForm";
 import { respondInvite } from "@/app/actions/talent";
 import { DECLINE_REASONS } from "@/lib/talent";
+import { canChat } from "@/lib/chat";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Dasbor Pelamar" };
@@ -50,7 +51,12 @@ export default async function SeekerDashboard() {
             {apps.map((a) => (
               <li key={a.id} className="flex items-center justify-between gap-2 text-sm">
                 <span>{a.job.title}, {a.job.company.name}</span>
-                <span className="tag">{STAGE_LABEL[a.stage as StageKey]}</span>
+                <span className="flex items-center gap-2">
+                  <span className="tag">{STAGE_LABEL[a.stage as StageKey]}</span>
+                  {canChat(a.stage) && (
+                    <Link href={`/dashboard/seeker/pesan/${a.id}`} className="btn btn-ghost !py-0.5 text-xs">Pesan</Link>
+                  )}
+                </span>
               </li>
             ))}
             {apps.length === 0 && <li className="text-sm">Belum ada lamaran. Buka menu Lowongan untuk mulai melamar.</li>}

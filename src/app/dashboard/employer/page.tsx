@@ -6,12 +6,12 @@ import { STAGES, STAGE_LABEL, StageKey, VERIFICATION_LABEL } from "@/lib/constan
 import { matchLabel } from "@/lib/screening";
 import { parseCv } from "@/lib/cv-analysis";
 import { formatDateId } from "@/lib/certificate";
-import EscClose from "@/components/EscClose";
+import ModalBehavior from "@/components/ModalBehavior";
+import { COMM_STAGES, applicantPhone, canChat } from "@/lib/chat";
+import { startCall } from "@/app/actions/messages";
 
 export const dynamic = "force-dynamic";
 
-// Tahap yang membuka fitur komunikasi dengan pelamar
-const COMM_STAGES: StageKey[] = ["INTERVIEW", "OFFERING", "HIRED", "REJECTED"];
 const BOARD = "/dashboard/employer";
 export const metadata = { title: "Dasbor Perusahaan" };
 
@@ -49,6 +49,7 @@ export default async function EmployerDashboard({ searchParams }: { searchParams
     : null;
   const cv = cvRow ? parseCv(cvRow.content) : null;
   const hasCv = !!cv && !!(cv.summary || cv.experiences.length || cv.education.length || cv.skills.length);
+  const phone = selected && canChat(selected.stage) ? await applicantPhone(selected.id) : null;
 
   return (
     <div>
@@ -93,9 +94,9 @@ export default async function EmployerDashboard({ searchParams }: { searchParams
 
       {selected && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={`CV ${selected.seeker.fullName}`}>
-          <EscClose href={BOARD} />
+          <ModalBehavior closeHref={BOARD} />
           <Link href={BOARD} scroll={false} aria-label="Tutup jendela CV" className="absolute inset-0 bg-black/60" />
-          <div className="relative z-10 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-line bg-surface p-5 shadow-xl">
+          <div className="relative z-10 max-h-[90vh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-lg border border-line bg-surface p-5 shadow-xl">
             <Link
               href={BOARD}
               scroll={false}
@@ -123,12 +124,35 @@ export default async function EmployerDashboard({ searchParams }: { searchParams
             {COMM_STAGES.includes(selected.stage as StageKey) && (
               <section className="mt-4 rounded-md border border-line p-3">
                 <h3 className="text-sm font-bold">Komunikasi dengan pelamar</h3>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <button type="button" disabled className="btn btn-ghost !py-1 text-sm">Pesan</button>
-                  <button type="button" disabled className="btn btn-ghost !py-1 text-sm">Telepon</button>
-                  <button type="button" disabled className="btn btn-ghost !py-1 text-sm">Video call</button>
+                <div className="mt-2 flex flex-wrap items-start gap-2">
+                  <Link href={`${BOARD}/pesan/${selected.id}`} className="btn btn-primary !py-1 text-sm">Pesan</Link>
+                  <details>
+                    <summary className="btn btn-ghost cursor-pointer list-none !py-1 text-sm [&::-webkit-details-marker]:hidden">Telepon</summary>
+                    <div className="mt-2 space-y-2 rounded-md border border-line p-2 text-xs">
+                      <form action={startCall}>
+                        <input type="hidden" name="id" value={selected.id} />
+                        <input type="hidden" name="mode" value="audio" />
+                        <button className="btn btn-ghost w-full !py-1 text-xs">Panggilan suara di website</button>
+                      </form>
+                      {phone ? (
+                        <>
+                          <a href={`tel:+${phone.intl}`} className="btn btn-ghost block !py-1 text-center text-xs">Telepon lewat HP ({phone.raw})</a>
+                          <a href={`https://wa.me/${phone.intl}`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost block !py-1 text-center text-xs">WhatsApp</a>
+                        </>
+                      ) : (
+                        <p className="max-w-[16rem] text-ink/60">Pelamar belum mencantumkan nomor telepon di CV, jadi telepon lewat HP dan WhatsApp belum tersedia.</p>
+                      )}
+                    </div>
+                  </details>
+                  <form action={startCall}>
+                    <input type="hidden" name="id" value={selected.id} />
+                    <input type="hidden" name="mode" value="video" />
+                    <button className="btn btn-ghost !py-1 text-sm">Video call</button>
+                  </form>
                 </div>
-                <p className="mt-2 text-xs text-ink/60">Fitur ini sedang disiapkan.</p>
+                <p className="mt-2 text-xs text-ink/60">
+                  Panggilan suara dan video call terbuka di tab baru lewat layanan Jitsi. Undangan diterima pelamar di halaman pesannya.
+                </p>
               </section>
             )}
 

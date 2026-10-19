@@ -60,6 +60,7 @@ model User {
   enrollments Enrollment[]
   orders      Order[]
   talentInvites TalentInvite[]
+  messages    Message[]
 }
 
 model SeekerProfile {
@@ -150,6 +151,7 @@ model Application {
   seeker     User     @relation(fields: [seekerId], references: [id])
   resume     Resume?  @relation(fields: [resumeId], references: [id])
   events     ApplicationEvent[]
+  messages   Message[]
   @@unique([jobId, seekerId])
 }
 
@@ -277,4 +279,19 @@ model TalentInvite {
   job       Job?     @relation(fields: [jobId], references: [id], onDelete: SetNull)
   @@index([companyId, seekerId])
   @@index([seekerId])
+}
+
+model Message {
+  id            String      @id @default(cuid())
+  applicationId String
+  senderId      String
+  kind          String      @default("text") // text | voice | call
+  body          String?
+  audio         Bytes?
+  audioMime     String?
+  audioSeconds  Int?
+  createdAt     DateTime    @default(now())
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  sender        User        @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  @@index([applicationId, createdAt])
 }
