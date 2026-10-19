@@ -56,7 +56,7 @@ export default function ChatThread({
                       {mine ? "Anda mengajak" : `${otherName} mengajak`} {mode === "audio" ? "panggilan suara" : "video call"}.
                     </p>
                     <a
-                      href={callUrl(applicationId, mode)}
+                      href={callUrl(applicationId, m.id, mode)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn btn-primary mt-2 inline-block !py-1 text-xs"

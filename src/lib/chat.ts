@@ -28,14 +28,15 @@ export async function getChatContext(applicationId: string, v: Viewer) {
   return { app, side: (isSeeker ? "seeker" : "employer") as "seeker" | "employer" };
 }
 
-// Nama ruang panggilan: acak dan tidak bisa ditebak, diturunkan dari AUTH_SECRET dan id lamaran
-export function roomName(applicationId: string) {
+// Nama ruang panggilan: acak dan tidak bisa ditebak. Setiap undangan panggilan (satu pesan) mendapat ruang sendiri,
+// diturunkan dari AUTH_SECRET, id lamaran, dan id undangan.
+export function roomName(applicationId: string, inviteId: string) {
   const secret = process.env.AUTH_SECRET ?? "";
-  return "lk-" + createHmac("sha256", secret).update(`call:${applicationId}`).digest("hex").slice(0, 24);
+  return "lk-" + createHmac("sha256", secret).update(`call:${applicationId}:${inviteId}`).digest("hex").slice(0, 24);
 }
 
-export function callUrl(applicationId: string, mode: "audio" | "video") {
-  const base = `https://meet.jit.si/${roomName(applicationId)}`;
+export function callUrl(applicationId: string, inviteId: string, mode: "audio" | "video") {
+  const base = `https://meet.jit.si/${roomName(applicationId, inviteId)}`;
   return mode === "audio" ? `${base}#config.startWithVideoMuted=true` : base;
 }
 

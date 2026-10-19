@@ -54,7 +54,7 @@ export default async function SeekerChat({ params }: { params: { id: string } })
             </form>
           </div>
           <p className="mt-2 text-xs text-ink/60">
-            Panggilan terbuka di tab baru lewat layanan Jitsi. Undangan panggilan dari perusahaan muncul di percakapan ini, lalu klik Gabung sekarang.
+            Panggilan terbuka di tab baru lewat layanan Jitsi. Undangan panggilan dari perusahaan muncul di percakapan ini, lalu klik Gabung sekarang. Jitsi membatasi satu rapat sampai 95 menit. Jika panggilan berakhir, klik Video call atau Panggilan suara lagi untuk membuat undangan dan ruang baru.
           </p>
         </section>
       )}
