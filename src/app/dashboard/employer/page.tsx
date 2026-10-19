@@ -35,6 +35,7 @@ export default async function EmployerDashboard() {
       <div className="mb-3 flex flex-wrap gap-2">
         <Link href="/dashboard/employer/jobs/new" className="btn btn-primary">Pasang lowongan</Link>
         <Link href="/dashboard/employer/jobs" className="btn btn-ghost">Lowongan saya</Link>
+        <Link href="/dashboard/employer/talent" className="btn btn-ghost">Talent Pool</Link>
       </div>
       {companies.map((c) => (
         <p key={c.id} className="mb-3 text-sm text-ink/70">

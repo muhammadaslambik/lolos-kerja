@@ -3,16 +3,23 @@ import { db } from "@/lib/db";
 import { requireRole } from "@/lib/session";
 import { STAGE_LABEL, StageKey } from "@/lib/constants";
 import ProfileForm from "@/components/ProfileForm";
+import { respondInvite } from "@/app/actions/talent";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Dasbor Pelamar" };
 
 export default async function SeekerDashboard() {
   const s = await requireRole("SEEKER");
-  const [profile, enrollments, apps] = await Promise.all([
+  const [profile, enrollments, apps, invites] = await Promise.all([
     db.seekerProfile.findUnique({ where: { userId: s.uid } }),
     db.enrollment.findMany({ where: { userId: s.uid }, include: { course: true, certificate: true } }),
     db.application.findMany({ where: { seekerId: s.uid }, include: { job: { include: { company: true } } }, orderBy: { createdAt: "desc" } }),
+    db.talentInvite.findMany({
+      where: { seekerId: s.uid },
+      include: { company: { select: { name: true } }, job: { select: { title: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    }),
   ]);
   return (
     <div className="space-y-6">
@@ -49,6 +56,32 @@ export default async function SeekerDashboard() {
           </ul>
         </section>
       </div>
+
+      {invites.length > 0 && (
+        <section className="panel">
+          <h2 className="font-bold">Undangan dari perusahaan</h2>
+          <ul className="mt-3 space-y-3 text-sm">
+            {invites.map((i) => (
+              <li key={i.id}>
+                <p className="font-medium">{i.company.name}{i.job ? `, untuk posisi ${i.job.title}` : ""}</p>
+                <p className="text-xs text-ink/70">{i.message}</p>
+                {i.status === "sent" ? (
+                  <form action={respondInvite} className="mt-2 flex flex-wrap gap-2">
+                    <input type="hidden" name="id" value={i.id} />
+                    <button name="decision" value="accept" className="btn btn-primary !py-1 text-xs">Terima dan bagikan email saya</button>
+                    <button name="decision" value="decline" className="btn btn-ghost !py-1 text-xs">Tolak</button>
+                  </form>
+                ) : (
+                  <span className="tag mt-1 inline-block">{i.status === "accepted" ? "Anda menerima" : "Anda menolak"}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-ink/60">
+            Dengan menerima, email akun Anda dibagikan kepada perusahaan tersebut. Perusahaan tidak melihat email Anda sebelum Anda menerima.
+          </p>
+        </section>
+      )}
 
       <section className="panel">
         <h2 className="font-bold">Profil saya</h2>

@@ -59,6 +59,7 @@ model User {
   applications Application[]
   enrollments Enrollment[]
   orders      Order[]
+  talentInvites TalentInvite[]
 }
 
 model SeekerProfile {
@@ -100,6 +101,7 @@ model Company {
   createdAt   DateTime @default(now())
   members     CompanyMember[]
   jobs        Job[]
+  talentInvites TalentInvite[]
 }
 
 model CompanyMember {
@@ -132,6 +134,7 @@ model Job {
   expiresAt    DateTime?
   createdAt    DateTime  @default(now())
   applications Application[]
+  talentInvites TalentInvite[]
   @@index([status, city, jobType])
 }
 
@@ -255,4 +258,19 @@ model LoginThrottle {
   count       Int       @default(0)
   windowStart DateTime  @default(now())
   lockedUntil DateTime?
+}
+
+model TalentInvite {
+  id        String   @id @default(cuid())
+  companyId String
+  seekerId  String
+  jobId     String?
+  message   String
+  status    String   @default("sent") // sent | accepted | declined
+  createdAt DateTime @default(now())
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  seeker    User     @relation(fields: [seekerId], references: [id], onDelete: Cascade)
+  job       Job?     @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  @@unique([companyId, seekerId])
+  @@index([seekerId])
 }
