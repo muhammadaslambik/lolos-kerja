@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/session";
 import { STAGE_LABEL, StageKey } from "@/lib/constants";
 import ProfileForm from "@/components/ProfileForm";
 import { respondInvite } from "@/app/actions/talent";
+import { DECLINE_REASONS } from "@/lib/talent";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Dasbor Pelamar" };
@@ -68,21 +69,40 @@ export default async function SeekerDashboard() {
                 {i.status === "sent" ? (
                   <form action={respondInvite} className="mt-2 flex flex-wrap items-start gap-2">
                     <input type="hidden" name="id" value={i.id} />
-                    <button name="decision" value="accept" className="btn btn-primary !py-1 text-xs">Terima dan bagikan email saya</button>
+                    <button name="decision" value="accept" formNoValidate className="btn btn-primary !py-1 text-xs">Terima dan bagikan email saya</button>
                     <details className="group">
                       <summary className="btn btn-ghost cursor-pointer list-none !py-1 text-xs [&::-webkit-details-marker]:hidden">Tolak</summary>
                       <div className="mt-2 max-w-sm rounded-md border border-red-500/40 bg-red-500/10 p-3 text-xs">
                         <p className="font-semibold">Yakin ingin menolak undangan ini?</p>
                         <p className="mt-1 text-ink/70">
-                          Keputusan ini tidak dapat diubah, dan {i.company.name} tidak dapat mengundang Anda lagi. Email Anda tidak dibagikan.
+                          Keputusan ini tidak dapat diubah. {i.company.name} baru dapat mengundang Anda lagi jika Anda memperbarui keahlian atau perusahaan memasang lowongan baru (maksimal 3 undangan). Email Anda tidak dibagikan.
                         </p>
+                        <label className="mt-2 block font-semibold">
+                          Alasan menolak
+                          <select name="reason" required defaultValue="" className="field mt-1 text-xs">
+                            <option value="" disabled>Pilih alasan</option>
+                            {Object.entries(DECLINE_REASONS).map(([k, v]) => (
+                              <option key={k} value={k}>{v}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="mt-2 block font-semibold">
+                          Catatan (opsional)
+                          <textarea name="note" maxLength={200} rows={2} className="field mt-1 text-xs" placeholder="Misalnya: gaji minimal yang saya harapkan" />
+                        </label>
+                        <p className="mt-1 text-ink/70">Alasan dan catatan Anda akan terlihat oleh perusahaan.</p>
                         <button name="decision" value="decline" className="btn btn-ghost mt-2 !py-1 text-xs">Ya, tolak undangan</button>
                         <p className="mt-2 text-ink/60">Untuk membatalkan, klik tombol Tolak sekali lagi.</p>
                       </div>
                     </details>
                   </form>
                 ) : (
-                  <span className="tag mt-1 inline-block">{i.status === "accepted" ? "Anda menerima" : "Anda menolak"}</span>
+                  <p className="mt-1">
+                    <span className="tag inline-block">{i.status === "accepted" ? "Anda menerima" : "Anda menolak"}</span>
+                    {i.status === "declined" && i.declineReason && DECLINE_REASONS[i.declineReason] && (
+                      <span className="ml-2 text-xs text-ink/70">Alasan: {DECLINE_REASONS[i.declineReason]}</span>
+                    )}
+                  </p>
                 )}
               </li>
             ))}

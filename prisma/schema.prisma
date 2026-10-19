@@ -268,9 +268,13 @@ model TalentInvite {
   message   String
   status    String   @default("sent") // sent | accepted | declined
   createdAt DateTime @default(now())
+  respondedAt DateTime?
+  declineReason String?
+  declineNote String?
+  skillsSnapshot String[] @default([])
   company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   seeker    User     @relation(fields: [seekerId], references: [id], onDelete: Cascade)
   job       Job?     @relation(fields: [jobId], references: [id], onDelete: SetNull)
-  @@unique([companyId, seekerId])
+  @@index([companyId, seekerId])
   @@index([seekerId])
 }

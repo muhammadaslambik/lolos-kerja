@@ -2,7 +2,8 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/session";
 import { EDU_LEVELS } from "@/lib/constants";
-import { INVITE_LABEL, shortName } from "@/lib/talent";
+import { formatDateId } from "@/lib/certificate";
+import { DECLINE_REASONS, INVITE_LABEL, MAX_INVITES, computeState, shortName } from "@/lib/talent";
 import { inviteTalent } from "@/app/actions/talent";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +34,7 @@ export default async function TalentPool({
   const keahlian = (searchParams.keahlian ?? "").trim().toLowerCase().slice(0, 60);
   const pengalaman = Math.min(50, Math.max(0, parseInt(searchParams.pengalaman ?? "0", 10) || 0));
 
-  const [profiles, invites, jobs] = await Promise.all([
+  const [profiles, invites, jobs, latestJob] = await Promise.all([
     db.seekerProfile.findMany({
       where: {
         talentVisible: true,
@@ -47,10 +48,20 @@ export default async function TalentPool({
       orderBy: { experienceYears: "desc" },
       take: 30,
     }),
-    db.talentInvite.findMany({ where: { companyId: company.id }, select: { seekerId: true, status: true } }),
+    db.talentInvite.findMany({
+      where: { companyId: company.id },
+      select: { seekerId: true, status: true, createdAt: true, respondedAt: true, declineReason: true, declineNote: true, skillsSnapshot: true },
+    }),
     db.job.findMany({ where: { companyId: company.id, status: "ACTIVE" }, select: { id: true, title: true }, orderBy: { createdAt: "desc" } }),
+    db.job.findFirst({ where: { companyId: company.id, status: "ACTIVE" }, orderBy: { createdAt: "desc" }, select: { createdAt: true } }),
   ]);
-  const invited = new Map(invites.map((i) => [i.seekerId, i.status]));
+
+  const bySeeker = new Map<string, typeof invites>();
+  for (const i of invites) {
+    const list = bySeeker.get(i.seekerId) ?? [];
+    list.push(i);
+    bySeeker.set(i.seekerId, list);
+  }
 
   return (
     <div className="max-w-3xl">
@@ -83,12 +94,21 @@ export default async function TalentPool({
 
       <div className="space-y-3">
         {profiles.map((p) => {
-          const status = invited.get(p.userId);
+          const st = computeState(bySeeker.get(p.userId) ?? [], p.skills, latestJob?.createdAt ?? null);
+          const declined = st.latest?.status === "declined" ? st.latest : null;
+          const declinedAt = declined ? (declined.respondedAt ?? declined.createdAt) : null;
+          const reasonLabel = declined?.declineReason ? DECLINE_REASONS[declined.declineReason] : undefined;
+          const updates = [st.skillsChanged && "keahlian pelamar berubah", st.newJob && "Anda memasang lowongan baru"].filter(Boolean).join(", ");
           return (
             <section key={p.userId} className="panel text-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="font-semibold">{shortName(p.user.fullName)}</p>
-                {status && <span className="tag">{INVITE_LABEL[status] ?? status}</span>}
+                {st.latest && (
+                  <span className="tag">
+                    {INVITE_LABEL[st.latest.status] ?? st.latest.status}
+                    {st.count > 1 ? ` (undangan ke-${st.count})` : ""}
+                  </span>
+                )}
               </div>
               {p.headline && <p className="mt-1">{p.headline}</p>}
               <p className="mt-1 text-xs text-ink/70">
@@ -97,7 +117,27 @@ export default async function TalentPool({
               <p className="mt-2 flex flex-wrap gap-1">
                 {p.skills.slice(0, 8).map((k) => <span key={k} className="tag">{k}</span>)}
               </p>
-              {!status && (
+
+              {declined && (
+                <div className="mt-3 rounded-md border border-line p-2 text-xs">
+                  <p className="font-medium">Pernah menolak{declinedAt ? ` pada ${formatDateId(declinedAt)}` : ""}.</p>
+                  <p>
+                    Alasan: {reasonLabel ?? "tidak dicatat (penolakan terjadi sebelum fitur alasan tersedia)"}
+                    {declined.declineNote ? `. Catatan: ${declined.declineNote}` : ""}
+                  </p>
+                  {st.canInvite ? (
+                    <p className="mt-1 font-medium">
+                      Ada pembaruan ({updates}). Anda dapat mengundang lagi ({st.count} dari {MAX_INVITES} undangan terpakai).
+                    </p>
+                  ) : st.block === "limit" ? (
+                    <p className="mt-1 text-ink/70">Batas {MAX_INVITES} undangan untuk kandidat ini sudah tercapai.</p>
+                  ) : (
+                    <p className="mt-1 text-ink/70">Dapat diundang lagi jika pelamar memperbarui keahliannya atau Anda memasang lowongan baru.</p>
+                  )}
+                </div>
+              )}
+
+              {st.canInvite && (
                 <form action={inviteTalent} className="mt-3 space-y-2">
                   <input type="hidden" name="seekerId" value={p.userId} />
                   <select name="jobId" className="field" defaultValue="">
@@ -105,7 +145,7 @@ export default async function TalentPool({
                     {jobs.map((j) => <option key={j.id} value={j.id}>{j.title}</option>)}
                   </select>
                   <textarea name="message" required minLength={10} maxLength={500} rows={2} className="field" placeholder="Tulis pesan undangan singkat (minimal 10 karakter)" />
-                  <button className="btn btn-ghost !py-1 text-xs">Kirim undangan</button>
+                  <button className="btn btn-ghost !py-1 text-xs">{st.count > 0 ? "Kirim undangan lagi" : "Kirim undangan"}</button>
                 </form>
               )}
             </section>

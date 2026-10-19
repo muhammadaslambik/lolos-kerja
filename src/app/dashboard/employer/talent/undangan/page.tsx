@@ -2,7 +2,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/session";
 import { formatDateId } from "@/lib/certificate";
-import { INVITE_LABEL, shortName } from "@/lib/talent";
+import { DECLINE_REASONS, INVITE_LABEL, shortName } from "@/lib/talent";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Undangan Talent Pool" };
@@ -37,6 +37,13 @@ export default async function Invitations({ searchParams }: { searchParams: { ok
               {i.job ? `Untuk posisi ${i.job.title}. ` : "Undangan umum. "}Dikirim {formatDateId(i.createdAt)}.
             </p>
             <p className="mt-1 text-xs">{i.message}</p>
+            {i.status === "declined" && (
+              <p className="mt-2 text-xs">
+                <span className="font-medium">Alasan menolak: </span>
+                {i.declineReason && DECLINE_REASONS[i.declineReason] ? DECLINE_REASONS[i.declineReason] : "tidak dicatat"}
+                {i.declineNote ? `. Catatan: ${i.declineNote}` : ""}
+              </p>
+            )}
             {i.status === "accepted" && (
               <p className="mt-2 font-medium">Kontak (dibagikan oleh pelamar): {i.seeker.email}</p>
             )}
