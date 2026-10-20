@@ -18,6 +18,11 @@ export default async function EmployerChat({ params }: { params: { id: string } 
   if (!ctx || ctx.side !== "employer") notFound();
 
   const open = canChat(ctx.app.stage);
+  // Pesan dari pihak lain dianggap dibaca saat percakapan dibuka
+  await db.message.updateMany({
+    where: { applicationId: ctx.app.id, senderId: { not: s.uid }, readAt: null },
+    data: { readAt: new Date() },
+  });
   const [rows, phone] = await Promise.all([
     db.message.findMany({
       where: { applicationId: ctx.app.id },

@@ -58,6 +58,7 @@ export default async function EmployerDashboard({ searchParams }: { searchParams
         <Link href="/dashboard/employer/jobs/new" className="btn btn-primary">Pasang lowongan</Link>
         <Link href="/dashboard/employer/jobs" className="btn btn-ghost">Lowongan saya</Link>
         <Link href="/dashboard/employer/talent" className="btn btn-ghost">Talent Pool</Link>
+        <Link href="/dashboard/employer/pesan" className="btn btn-ghost">Pesan</Link>
       </div>
       {companies.map((c) => (
         <p key={c.id} className="mb-3 text-sm text-ink/70">

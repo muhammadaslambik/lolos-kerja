@@ -291,6 +291,7 @@ model Message {
   audioMime     String?
   audioSeconds  Int?
   createdAt     DateTime    @default(now())
+  readAt        DateTime?
   application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   sender        User        @relation(fields: [senderId], references: [id], onDelete: Cascade)
   @@index([applicationId, createdAt])

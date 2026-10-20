@@ -180,6 +180,11 @@ async function main() {
 
   const first = await db.course.findUnique({ where: { slug: "excel-untuk-admin" } });
   if (first) await db.enrollment.upsert({ where: { userId_courseId: { userId: seeker.id, courseId: first.id } }, update: {}, create: { userId: seeker.id, courseId: first.id, progressPct: 40 } });
+  // Pesan lama (sebelum fitur notifikasi ada) dianggap sudah dibaca agar tidak muncul sebagai pesan baru
+  await db.message.updateMany({
+    where: { readAt: null, createdAt: { lt: new Date("2026-10-20T09:00:00Z") } },
+    data: { readAt: new Date() },
+  });
   console.log("Seed selesai.");
 }
 main().finally(() => db.$disconnect());
