@@ -151,7 +151,7 @@ export default async function EmployerDashboard({ searchParams }: { searchParams
                   </form>
                 </div>
                 <p className="mt-2 text-xs text-ink/60">
-                  Panggilan suara dan video call terbuka di tab baru lewat layanan Jitsi. Undangan diterima pelamar di halaman pesannya.
+                  Panggilan suara dan video call berlangsung di dalam halaman website lewat layanan Jitsi. Undangan diterima pelamar di halaman pesannya.
                 </p>
               </section>
             )}

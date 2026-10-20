@@ -67,7 +67,7 @@ export default async function EmployerChat({ params }: { params: { id: string } 
             {phone
               ? "Nomor diambil dari CV pelamar. Telepon lewat HP dan WhatsApp dilakukan di aplikasi perangkat Anda."
               : "Pelamar belum mencantumkan nomor telepon di CV, jadi telepon lewat HP dan WhatsApp belum tersedia."}{" "}
-            Panggilan suara dan video call terbuka di tab baru lewat layanan Jitsi. Jitsi membatasi satu rapat sampai 95 menit. Jika panggilan berakhir, klik Video call atau Panggilan suara lagi untuk membuat undangan dan ruang baru.
+            Panggilan suara dan video call berlangsung di dalam halaman website lewat layanan Jitsi. Jitsi membatasi satu rapat sampai 95 menit. Jika panggilan berakhir, klik Video call atau Panggilan suara lagi untuk membuat undangan dan ruang baru.
           </p>
         </section>
       )}
