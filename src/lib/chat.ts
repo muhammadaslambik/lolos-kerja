@@ -40,6 +40,14 @@ export function callUrl(applicationId: string, inviteId: string, mode: "audio" |
   return mode === "audio" ? `${base}#config.startWithVideoMuted=true` : base;
 }
 
+// Alamat untuk ditanam (iframe) di halaman website, dengan nama tampilan terisi agar tidak ditanya lagi
+export function callEmbedUrl(applicationId: string, inviteId: string, mode: "audio" | "video", displayName: string) {
+  const base = `https://meet.jit.si/${roomName(applicationId, inviteId)}`;
+  const params = [`userInfo.displayName=${encodeURIComponent(JSON.stringify(displayName))}`];
+  if (mode === "audio") params.push("config.startWithVideoMuted=true");
+  return `${base}#${params.join("&")}`;
+}
+
 // Mengubah nomor telepon Indonesia ke format internasional tanpa tanda plus (contoh: 6281234567890)
 export function normalizePhone(raw: string): string | null {
   let d = raw.replace(/\D/g, "");

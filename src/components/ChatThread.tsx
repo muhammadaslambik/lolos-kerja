@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { callUrl } from "@/lib/chat";
 
 export type ChatMessage = {
@@ -17,11 +18,13 @@ export default function ChatThread({
   viewerId,
   applicationId,
   otherName,
+  side,
 }: {
   messages: ChatMessage[];
   viewerId: string;
   applicationId: string;
   otherName: string;
+  side: "employer" | "seeker";
 }) {
   if (messages.length === 0) {
     return <p className="panel text-sm">Belum ada pesan. Mulailah dengan menyapa.</p>;
@@ -55,14 +58,17 @@ export default function ChatThread({
                     <p>
                       {mine ? "Anda mengajak" : `${otherName} mengajak`} {mode === "audio" ? "panggilan suara" : "video call"}.
                     </p>
-                    <a
-                      href={callUrl(applicationId, m.id, mode)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-primary mt-2 inline-block !py-1 text-xs"
-                    >
-                      Gabung sekarang
-                    </a>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <Link
+                        href={`/dashboard/${side}/panggilan/${applicationId}/${m.id}`}
+                        className="btn btn-primary inline-block !py-1 text-xs"
+                      >
+                        Gabung sekarang
+                      </Link>
+                      <a href={callUrl(applicationId, m.id, mode)} target="_blank" rel="noopener noreferrer" className="text-xs underline">
+                        Buka di tab baru
+                      </a>
+                    </div>
                   </div>
                 )}
 

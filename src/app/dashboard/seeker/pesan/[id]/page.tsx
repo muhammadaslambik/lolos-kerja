@@ -59,7 +59,7 @@ export default async function SeekerChat({ params }: { params: { id: string } })
         </section>
       )}
 
-      <ChatThread messages={messages} viewerId={s.uid} applicationId={ctx.app.id} otherName={company} />
+      <ChatThread messages={messages} viewerId={s.uid} applicationId={ctx.app.id} side="seeker" otherName={company} />
       <ChatComposer applicationId={ctx.app.id} disabled={!open} />
     </div>
   );

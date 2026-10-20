@@ -72,7 +72,7 @@ export default async function EmployerChat({ params }: { params: { id: string } 
         </section>
       )}
 
-      <ChatThread messages={messages} viewerId={s.uid} applicationId={ctx.app.id} otherName={ctx.app.seeker.fullName} />
+      <ChatThread messages={messages} viewerId={s.uid} applicationId={ctx.app.id} side="employer" otherName={ctx.app.seeker.fullName} />
       <ChatComposer applicationId={ctx.app.id} disabled={!open} />
     </div>
   );
