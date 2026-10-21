@@ -1,15 +1,6 @@
 import type { ReactNode } from "react";
-import { getSession } from "@/lib/session";
-import NotificationListener from "@/components/NotificationListener";
 
-// Tombol notifikasi pesan tampil di semua halaman dasbor pelamar dan perusahaan
-export default async function DashboardLayout({ children }: { children: ReactNode }) {
-  const s = await getSession();
-  const show = !!s && (s.role === "SEEKER" || s.role === "EMPLOYER");
-  return (
-    <>
-      {children}
-      {show && <NotificationListener />}
-    </>
-  );
+// Tombol Pesan kini dipasang untuk seluruh website di src/app/template.tsx, jadi layout ini hanya meneruskan isi halaman
+export default function DashboardLayout({ children }: { children: ReactNode }) {
+  return <>{children}</>;
 }

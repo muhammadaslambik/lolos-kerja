@@ -1,10 +1,10 @@
 import { createHmac } from "crypto";
 import { db } from "@/lib/db";
 import { parseCv } from "@/lib/cv-analysis";
-import type { StageKey } from "@/lib/constants";
+import { STAGES, type StageKey } from "@/lib/constants";
 
-// Tahap yang membuka fitur komunikasi dengan pelamar
-export const COMM_STAGES: StageKey[] = ["INTERVIEW", "OFFERING", "HIRED", "REJECTED"];
+// Komunikasi (pesan, telepon, video call) tersedia di semua status lamaran
+export const COMM_STAGES: StageKey[] = [...STAGES];
 export const canChat = (stage: string) => COMM_STAGES.includes(stage as StageKey);
 
 export type Viewer = { uid: string; role: string };

@@ -141,7 +141,7 @@ export default function ChatComposer({ applicationId, disabled }: { applicationI
   if (disabled) {
     return (
       <p className="panel text-sm">
-        Pesan hanya dapat dikirim saat status lamaran Interview, Penawaran, Diterima, atau Ditolak.
+        Pesan tidak tersedia untuk percakapan ini.
       </p>
     );
   }

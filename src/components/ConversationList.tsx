@@ -7,7 +7,7 @@ export default function ConversationList({ rows }: { rows: ConversationRow[] }) 
   if (rows.length === 0) {
     return (
       <p className="panel text-sm">
-        Belum ada percakapan. Percakapan tersedia saat status lamaran Interview, Penawaran, Diterima, atau Ditolak.
+        Belum ada percakapan. Perusahaan memulainya dari jendela CV pelamar, dan pelamar memulainya lewat tombol Pesan di daftar Status lamaran.
       </p>
     );
   }

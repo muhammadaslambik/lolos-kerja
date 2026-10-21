@@ -18,7 +18,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const ctx = await getChatContext(params.id, s);
   if (!ctx) return json({ error: "Percakapan tidak ditemukan." }, 404);
   if (!canChat(ctx.app.stage)) {
-    return json({ error: "Pesan hanya tersedia saat status Interview, Penawaran, Diterima, atau Ditolak." }, 403);
+    return json({ error: "Percakapan tidak tersedia." }, 403);
   }
 
   const recent = await db.message.count({ where: { senderId: s.uid, createdAt: { gte: new Date(Date.now() - 60_000) } } });
