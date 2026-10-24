@@ -66,16 +66,21 @@ export async function GET(req: Request) {
     return fail("google_gagal");
   }
 
-  // 2. Cari akun dengan email itu, atau buat akun baru
+  // 2. Cari akun dengan email itu, atau buat akun baru.
+  //    Satu email boleh punya dua peran (Pelamar dan Perusahaan). Bila akun lama
+  //    mendaftar lewat halaman Daftar dengan peran lain, peran itu ditambahkan
+  //    dan menjadi peran aktif. Admin tidak pernah diubah.
   let role: RoleKey = "SEEKER";
   let uid = "";
   let fullName = "";
   try {
+    const company = st.company.trim();
+    const wantsEmployer = st.mode === "register" && st.role === "EMPLOYER" && company.length >= 2;
+    const wantsSeeker = st.mode === "register" && st.role !== "EMPLOYER";
+
     let user = await db.user.findUnique({ where: { email } });
     if (!user) {
       const adminEmail = (process.env.ADMIN_EMAIL ?? "").trim().toLowerCase();
-      const company = st.company.trim();
-      const wantsEmployer = st.mode === "register" && st.role === "EMPLOYER" && company.length >= 2;
       const newRole: RoleKey = adminEmail && email === adminEmail ? "ADMIN" : wantsEmployer ? "EMPLOYER" : "SEEKER";
       user = await db.user.create({
         data: { email, fullName: name, role: newRole, ...(newRole === "SEEKER" ? { profile: { create: {} } } : {}) },
@@ -88,6 +93,24 @@ export async function GET(req: Request) {
             members: { create: { userId: user.id, memberRole: "owner" } },
           },
         });
+      }
+    } else if (user.role !== "ADMIN") {
+      if (wantsEmployer && user.role !== "EMPLOYER") {
+        const member = await db.companyMember.findFirst({ where: { userId: user.id }, select: { userId: true } });
+        if (!member) {
+          await db.company.create({
+            data: {
+              name: company,
+              slug: `${slugify(company)}-${Math.random().toString(36).slice(2, 6)}`,
+              members: { create: { userId: user.id, memberRole: "owner" } },
+            },
+          });
+        }
+        user = await db.user.update({ where: { id: user.id }, data: { role: "EMPLOYER" } });
+      } else if (wantsSeeker && user.role !== "SEEKER") {
+        const prof = await db.seekerProfile.findUnique({ where: { userId: user.id }, select: { userId: true } });
+        if (!prof) await db.seekerProfile.create({ data: { userId: user.id } });
+        user = await db.user.update({ where: { id: user.id }, data: { role: "SEEKER" } });
       }
     }
     role = user.role;
