@@ -296,8 +296,6 @@ model Message {
   sender        User        @relation(fields: [senderId], references: [id], onDelete: Cascade)
   @@index([applicationId, createdAt])
 }
-// Tempel SELURUH isi file ini di paling bawah prisma/schema.prisma
-// (jangan mengubah model yang sudah ada).
 
 model CompanyProfile {
   companyId     String    @id
