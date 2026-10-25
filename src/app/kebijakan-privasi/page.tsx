@@ -37,6 +37,7 @@ export default function KebijakanPrivasiPage() {
         <li>Kata sandi, bila Anda mendaftar dengan email. Kata sandi disimpan dalam bentuk hash, bukan teks asli.</li>
         <li>Data akun dari Google bila Anda masuk dengan Google (lihat bagian 3).</li>
         <li>Pesan, pesan suara, dan catatan panggilan yang Anda kirim di dalam platform.</li>
+        <li>Riwayat pesanan dan pembayaran kelas (tanpa nomor kartu).</li>
         <li>Data teknis untuk keamanan, misalnya pembatasan percobaan masuk yang gagal.</li>
       </ul>
       <p className={P}>Pelamar, tambahan yang Anda isi sendiri:</p>
