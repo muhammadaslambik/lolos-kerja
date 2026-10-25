@@ -44,11 +44,14 @@ async function persist(fd: FormData, uid: string): Promise<{ companyId: string }
   const locked = company.verification === "VERIFIED";
   const g = (k: string, max = 200) => String(fd.get(k) ?? "").trim().slice(0, max);
   const nz = (v: string) => (v === "" ? null : v);
+  const prof = await db.companyProfile.findUnique({ where: { companyId: company.id } });
+  // Data legalitas yang sudah terisi dikunci setelah verifikasi; kolom yang masih kosong tetap boleh dilengkapi
+  const keep = (cur: string | null | undefined, next: string | null) => (locked && cur ? cur : next);
 
   const nib = digits(g("nib", 40));
-  if (!locked && nib && nib.length !== 13) return { error: "nib" };
+  if (!(locked && company.nib) && nib && nib.length !== 13) return { error: "nib" };
   const npwp = digits(g("npwp", 40));
-  if (!locked && npwp && npwp.length !== 15 && npwp.length !== 16) return { error: "npwp" };
+  if (!(locked && company.npwp) && npwp && npwp.length !== 15 && npwp.length !== 16) return { error: "npwp" };
 
   let year: number | null = null;
   const y = g("foundedYear", 4);
@@ -79,7 +82,9 @@ async function persist(fd: FormData, uid: string): Promise<{ companyId: string }
   await db.company.update({
     where: { id: company.id },
     data: {
-      ...(locked ? {} : { name: name.length >= 2 ? name : company.name, nib: nz(nib), npwp: nz(npwp) }),
+      name: locked ? company.name : name.length >= 2 ? name : company.name,
+      nib: locked && company.nib ? company.nib : nz(nib),
+      npwp: locked && company.npwp ? company.npwp : nz(npwp),
       industry: nz(g("industry", 80)),
       city: nz(g("city", 80)),
       website: nz(website),
@@ -102,15 +107,13 @@ async function persist(fd: FormData, uid: string): Promise<{ companyId: string }
     hiringNeeds: nz(g("hiringNeeds", 1500)),
     annualHiring: nz(g("annualHiring", 80)),
   };
-  const legal = locked
-    ? {}
-    : {
-        legalName: nz(g("legalName", 160)),
-        entityType: (ENTITY_TYPES as readonly string[]).includes(entity) ? entity : null,
-        deedNumber: nz(g("deedNumber", 80)),
-        skNumber: nz(g("skNumber", 80)),
-        otherLicense: nz(g("otherLicense", 200)),
-      };
+  const legal = {
+    legalName: keep(prof?.legalName, nz(g("legalName", 160))),
+    entityType: keep(prof?.entityType, (ENTITY_TYPES as readonly string[]).includes(entity) ? entity : null),
+    deedNumber: keep(prof?.deedNumber, nz(g("deedNumber", 80))),
+    skNumber: keep(prof?.skNumber, nz(g("skNumber", 80))),
+    otherLicense: keep(prof?.otherLicense, nz(g("otherLicense", 200))),
+  };
   const data = { ...base, ...legal };
   await db.companyProfile.upsert({ where: { companyId: company.id }, update: data, create: { companyId: company.id, ...data } });
   return { companyId: company.id };
@@ -238,7 +241,7 @@ export default async function CompanyProfilePage({ searchParams }: { searchParam
         )}
         {locked && (
           <p className="text-ink/70">
-            Perusahaan sudah terverifikasi. Nama, NIB, NPWP, dan data legalitas dikunci. Hubungi admin bila perlu mengubahnya.
+            Perusahaan sudah terverifikasi. Nama dan data legalitas yang sudah terisi dikunci, hubungi admin bila perlu mengubahnya. Kolom yang masih kosong boleh dilengkapi.
           </p>
         )}
       </section>
@@ -248,10 +251,10 @@ export default async function CompanyProfilePage({ searchParams }: { searchParam
           <h2 className="font-bold">1. Identitas dan legalitas</h2>
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Nama perusahaan (tampil di lowongan)" name="name" defaultValue={company.name} disabled={locked} maxLength={120} />
-            <Field label="Nama resmi badan usaha" name="legalName" defaultValue={profile?.legalName} disabled={locked} placeholder="Sesuai akta atau NIB" maxLength={160} />
+            <Field label="Nama resmi badan usaha" name="legalName" defaultValue={profile?.legalName} disabled={locked && !!profile?.legalName} placeholder="Sesuai akta atau NIB" maxLength={160} />
             <div>
               <label htmlFor="entityType" className="mb-1 block text-sm font-semibold">Bentuk usaha</label>
-              <select id="entityType" name="entityType" defaultValue={profile?.entityType ?? ""} disabled={locked} className="field">
+              <select id="entityType" name="entityType" defaultValue={profile?.entityType ?? ""} disabled={locked && !!profile?.entityType} className="field">
                 <option value="">Pilih</option>
                 {ENTITY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
@@ -265,12 +268,12 @@ export default async function CompanyProfilePage({ searchParams }: { searchParam
                 {EMPLOYEE_RANGES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
-            <Field label="NIB (13 digit)" name="nib" defaultValue={company.nib} disabled={locked} maxLength={40} />
-            <Field label="NPWP perusahaan (15 atau 16 digit)" name="npwp" defaultValue={company.npwp} disabled={locked} maxLength={40} />
-            <Field label="Nomor akta pendirian" name="deedNumber" defaultValue={profile?.deedNumber} disabled={locked} maxLength={80} />
-            <Field label="Nomor SK pengesahan (Kemenkumham/AHU)" name="skNumber" defaultValue={profile?.skNumber} disabled={locked} maxLength={80} />
+            <Field label="NIB (13 digit)" name="nib" defaultValue={company.nib} disabled={locked && !!company.nib} maxLength={40} />
+            <Field label="NPWP perusahaan (15 atau 16 digit)" name="npwp" defaultValue={company.npwp} disabled={locked && !!company.npwp} maxLength={40} />
+            <Field label="Nomor akta pendirian" name="deedNumber" defaultValue={profile?.deedNumber} disabled={locked && !!profile?.deedNumber} maxLength={80} />
+            <Field label="Nomor SK pengesahan (Kemenkumham/AHU)" name="skNumber" defaultValue={profile?.skNumber} disabled={locked && !!profile?.skNumber} maxLength={80} />
           </div>
-          <Field label="Izin usaha lain atau izin sektoral (bila ada)" name="otherLicense" defaultValue={profile?.otherLicense} disabled={locked} placeholder="Contoh: izin penempatan, izin pelatihan, SIUP lama" maxLength={200} />
+          <Field label="Izin usaha lain atau izin sektoral (bila ada)" name="otherLicense" defaultValue={profile?.otherLicense} disabled={locked && !!profile?.otherLicense} placeholder="Contoh: izin penempatan, izin pelatihan, SIUP lama" maxLength={200} />
           <div>
             <label htmlFor="description" className="mb-1 block text-sm font-semibold">Deskripsi perusahaan</label>
             <textarea id="description" name="description" rows={4} maxLength={1500} defaultValue={company.description ?? ""} className="field" />
