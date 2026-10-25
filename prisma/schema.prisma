@@ -296,3 +296,43 @@ model Message {
   sender        User        @relation(fields: [senderId], references: [id], onDelete: Cascade)
   @@index([applicationId, createdAt])
 }
+// Tempel SELURUH isi file ini di paling bawah prisma/schema.prisma
+// (jangan mengubah model yang sudah ada).
+
+model CompanyProfile {
+  companyId     String    @id
+  legalName     String?
+  entityType    String?
+  foundedYear   Int?
+  employeeRange String?
+  deedNumber    String?
+  skNumber      String?
+  otherLicense  String?
+  address       String?
+  province      String?
+  postalCode    String?
+  phone         String?
+  contactEmail  String?
+  picName       String?
+  picTitle      String?
+  picPhone      String?
+  picEmail      String?
+  hiringNeeds   String?
+  annualHiring  String?
+  submittedAt   DateTime?
+  reviewNote    String?
+  reviewedAt    DateTime?
+  updatedAt     DateTime  @updatedAt
+}
+
+model CompanyDocument {
+  id        String   @id @default(cuid())
+  companyId String
+  kind      String
+  fileName  String
+  mime      String
+  size      Int
+  data      Bytes
+  createdAt DateTime @default(now())
+  @@index([companyId])
+}
