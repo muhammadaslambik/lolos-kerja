@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { logout } from "@/app/actions/auth";
+import { switchRole } from "@/app/actions/role";
+import { db } from "@/lib/db";
 import { dashboardPath } from "@/lib/constants";
 import NavLinks, { type NavItem } from "./NavLinks";
 import ThemeToggle from "./ThemeToggle";
@@ -14,6 +16,20 @@ export default async function Header() {
   ];
   if (s) items.push({ href: dashboardPath(s.role), label: "Dasbor" });
 
+  // Tombol ganti peran: Pelamar boleh ke Perusahaan bila sudah punya perusahaan;
+  // Perusahaan boleh ke Pelamar kapan saja. Admin tidak mendapat tombol ini.
+  let switchTo: "SEEKER" | "EMPLOYER" | null = null;
+  if (s?.role === "EMPLOYER") {
+    switchTo = "SEEKER";
+  } else if (s?.role === "SEEKER") {
+    try {
+      const member = await db.companyMember.findFirst({ where: { userId: s.uid }, select: { userId: true } });
+      if (member) switchTo = "EMPLOYER";
+    } catch {
+      switchTo = null;
+    }
+  }
+
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-surface/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 px-4">
@@ -26,6 +42,13 @@ export default async function Header() {
           {s ? (
             <>
               <span className="hidden text-sm text-ink/70 sm:inline">Halo, {s.name.split(" ")[0]}</span>
+              {switchTo && (
+                <form action={switchRole.bind(null, switchTo)}>
+                  <button className="btn btn-ghost">
+                    {switchTo === "EMPLOYER" ? "Ganti ke Perusahaan" : "Ganti ke Pelamar"}
+                  </button>
+                </form>
+              )}
               <form action={logout}>
                 <button className="btn btn-ghost">Keluar</button>
               </form>
