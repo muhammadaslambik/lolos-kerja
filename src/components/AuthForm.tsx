@@ -28,11 +28,22 @@ function GoogleLogo() {
   );
 }
 
+function EyeIcon({ off }: { off: boolean }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+      <circle cx="12" cy="12" r="3" />
+      {off && <path d="M3 3l18 18" />}
+    </svg>
+  );
+}
+
 export default function AuthForm({ mode, next }: { mode: "login" | "register"; next?: string }) {
   const [state, action] = useFormState<AuthState, FormData>(mode === "login" ? login : register, {});
   const [role, setRole] = useState("SEEKER");
   const [company, setCompany] = useState("");
   const [oauthMsg, setOauthMsg] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const isRegister = mode === "register";
 
   // Pesan kesalahan dari proses Google dibawa lewat alamat halaman (?error=...)
@@ -91,7 +102,28 @@ export default function AuthForm({ mode, next }: { mode: "login" | "register"; n
       </div>
       <div>
         <label htmlFor="password" className="mb-1 block text-sm font-semibold">Kata sandi</label>
-        <input id="password" name="password" type="password" required minLength={isRegister ? 8 : undefined} autoComplete={isRegister ? "new-password" : "current-password"} className="field" />
+        <div className="relative">
+          <input
+            id="password"
+            name="password"
+            type={showPw ? "text" : "password"}
+            required
+            minLength={isRegister ? 8 : undefined}
+            autoComplete={isRegister ? "new-password" : "current-password"}
+            className="field"
+            style={{ paddingRight: 44 }}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPw((v) => !v)}
+            aria-label={showPw ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
+            aria-pressed={showPw}
+            title={showPw ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
+            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-md text-ink/60 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          >
+            <EyeIcon off={showPw} />
+          </button>
+        </div>
         {isRegister && <p className="mt-1 text-xs text-ink/60">Minimal 8 karakter.</p>}
       </div>
 
@@ -112,6 +144,12 @@ export default function AuthForm({ mode, next }: { mode: "login" | "register"; n
           Belum punya akun? Masuk dengan Google otomatis membuat akun pelamar. Untuk akun perusahaan, daftar lewat halaman Daftar.
         </p>
       )}
+
+      <p className="text-center text-xs text-ink/60">
+        Dengan {isRegister ? "mendaftar" : "masuk"}, Anda menyetujui{" "}
+        <Link href="/syarat-ketentuan" className="underline">Syarat &amp; Ketentuan</Link> dan{" "}
+        <Link href="/kebijakan-privasi" className="underline">Kebijakan Privasi</Link>.
+      </p>
 
       <p className="text-center text-sm text-ink/70">
         {isRegister ? "Sudah punya akun? " : "Belum punya akun? "}
