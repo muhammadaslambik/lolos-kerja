@@ -27,6 +27,7 @@ export default async function CourseDetail({
   if (!course) notFound();
 
   const s = await getSession();
+  const isAdmin = s?.role === "ADMIN";
   const enrollment =
     s && s.role === "SEEKER"
       ? await db.enrollment.findUnique({
@@ -107,7 +108,10 @@ export default async function CourseDetail({
         ) : !s ? (
           <Link href="/login" className="btn btn-primary inline-block">Masuk untuk mendaftar</Link>
         ) : s.role !== "SEEKER" ? (
-          <p className="text-sm">Hanya akun pelamar yang dapat mendaftar kelas.</p>
+          <p className="text-sm">
+            Hanya akun pelamar yang dapat mendaftar kelas.
+            {isAdmin && " Sebagai admin, buka salah satu pelajaran di bawah untuk melihat pratinjau dan mengatur video."}
+          </p>
         ) : course.price > 0 ? (
           <p className="text-sm">Kelas berbayar belum tersedia. Pembayaran sedang disiapkan.</p>
         ) : (
@@ -126,7 +130,7 @@ export default async function CourseDetail({
             <ul className="mt-2 space-y-1 text-sm">
               {m.lessons.map((l) => (
                 <li key={l.id} className="flex items-center justify-between gap-2">
-                  {enrollment ? (
+                  {enrollment || isAdmin ? (
                     <Link href={`/courses/${course.slug}/belajar/${l.id}`} className="underline">{l.title}</Link>
                   ) : (
                     <span>{l.title}</span>
