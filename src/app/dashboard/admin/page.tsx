@@ -2,6 +2,8 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/session";
 import { formatDateId } from "@/lib/certificate";
+import { JOB_TYPE_LABEL } from "@/lib/constants";
+import AdminStats, { type StatCard } from "@/components/AdminStats";
 import { DOC_LABEL, fmtSize, missingFields } from "@/lib/company-profile";
 
 export const dynamic = "force-dynamic";
@@ -71,16 +73,102 @@ export default async function AdminDashboard() {
       orderBy: { createdAt: "asc" },
     }),
   ]);
-  const stats: [string, string | number][] = [
-    ["Pengguna", users], ["Lowongan aktif", jobs], ["Pelamar diterima", hired],
-    ["Tingkat kelulusan kelas", enrolls ? `${Math.round((done / enrolls) * 100)}%` : "0%"],
+  const [userRows, jobRows, hiredRows, courseRows, completedRows, enrollRows] = await Promise.all([
+    db.user.findMany({ orderBy: { createdAt: "desc" }, take: 50, select: { fullName: true, email: true, role: true, createdAt: true } }),
+    db.job.findMany({
+      where: { status: "ACTIVE" },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: { title: true, city: true, jobType: true, company: { select: { name: true } }, _count: { select: { applications: true } } },
+    }),
+    db.application.findMany({
+      where: { stage: "HIRED" },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: { createdAt: true, seeker: { select: { fullName: true } }, job: { select: { title: true, company: { select: { name: true } } } } },
+    }),
+    db.course.findMany({ orderBy: { createdAt: "asc" }, select: { id: true, title: true, _count: { select: { enrollments: true } } } }),
+    db.enrollment.groupBy({ by: ["courseId"], where: { status: "completed" }, _count: { _all: true } }),
+    db.enrollment.findMany({
+      orderBy: { enrolledAt: "desc" },
+      take: 50,
+      select: { status: true, finalScore: true, user: { select: { fullName: true } }, course: { select: { title: true, passScore: true } } },
+    }),
+  ]);
+  const completedBy = new Map(completedRows.map((r) => [r.courseId, r._count._all]));
+  const cards: StatCard[] = [
+    {
+      key: "users",
+      label: "Pengguna",
+      value: users,
+      title: "Daftar pengguna",
+      note: users > userRows.length ? `Menampilkan ${userRows.length} pengguna terbaru dari ${users}.` : undefined,
+      sections: [
+        {
+          columns: ["Nama", "Email", "Peran", "Terdaftar"],
+          rows: userRows.map((u) => [u.fullName, u.email, ROLE_LABEL[u.role] ?? u.role, formatDateId(u.createdAt)]),
+        },
+      ],
+    },
+    {
+      key: "jobs",
+      label: "Lowongan aktif",
+      value: jobs,
+      title: "Lowongan yang sedang tayang",
+      note: jobs > jobRows.length ? `Menampilkan ${jobRows.length} lowongan terbaru dari ${jobs}.` : undefined,
+      sections: [
+        {
+          columns: ["Lowongan", "Perusahaan", "Kota", "Tipe", "Pelamar"],
+          rows: jobRows.map((j) => [j.title, j.company.name, j.city ?? "-", JOB_TYPE_LABEL[j.jobType], String(j._count.applications)]),
+        },
+      ],
+    },
+    {
+      key: "hired",
+      label: "Pelamar diterima",
+      value: hired,
+      title: "Pelamar yang diterima bekerja",
+      note: hired > hiredRows.length ? `Menampilkan ${hiredRows.length} terbaru dari ${hired}.` : undefined,
+      sections: [
+        {
+          columns: ["Pelamar", "Lowongan", "Perusahaan", "Melamar pada"],
+          rows: hiredRows.map((a) => [a.seeker.fullName, a.job.title, a.job.company.name, formatDateId(a.createdAt)]),
+        },
+      ],
+    },
+    {
+      key: "courses",
+      label: "Tingkat kelulusan kelas",
+      value: enrolls ? `${Math.round((done / enrolls) * 100)}%` : "0%",
+      title: "Kelulusan kelas",
+      note: `${done} lulus dari ${enrolls} pendaftaran kelas.`,
+      sections: [
+        {
+          heading: "Per kelas",
+          columns: ["Kelas", "Peserta", "Lulus", "Tingkat"],
+          rows: courseRows.map((c) => {
+            const total = c._count.enrollments;
+            const ok = completedBy.get(c.id) ?? 0;
+            return [c.title, String(total), String(ok), total ? `${Math.round((ok / total) * 100)}%` : "-"];
+          }),
+        },
+        {
+          heading: "Peserta terbaru",
+          columns: ["Peserta", "Kelas", "Nilai terbaik", "Status"],
+          rows: enrollRows.map((e) => [
+            e.user.fullName,
+            e.course.title,
+            e.finalScore === null ? "-" : `${e.finalScore} (lulus ${e.course.passScore})`,
+            e.status === "completed" ? "Lulus" : "Belajar",
+          ]),
+        },
+      ],
+    },
   ];
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-extrabold">Ringkasan platform</h1>
-      <div className="grid gap-3 md:grid-cols-4">
-        {stats.map(([l, v]) => <div key={l} className="panel"><p className="text-2xl font-extrabold">{v}</p><p className="text-sm text-ink/70">{l}</p></div>)}
-      </div>
+      <AdminStats cards={cards} />
       <section className="panel">
         <h2 className="font-bold">Perusahaan menunggu verifikasi</h2>
         <p className="mt-1 text-sm text-ink/70">Klik nama perusahaan untuk melihat akun pendaftar, data lengkap, dan dokumennya.</p>
