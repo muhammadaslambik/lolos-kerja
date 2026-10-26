@@ -18,13 +18,14 @@ const OK_TEXT: Record<string, string> = {
 export default async function EmployerJobs({ searchParams }: { searchParams: { ok?: string } }) {
   const s = await requireRole("EMPLOYER");
   const where = { members: { some: { userId: s.uid } } };
-  const company = await db.company.findFirst({ where });
+  const companies = await db.company.findMany({ where, orderBy: { createdAt: "asc" } });
   const jobs = await db.job.findMany({
     where: { company: where },
-    include: { _count: { select: { applications: true } } },
+    include: { _count: { select: { applications: true } }, company: { select: { name: true } } },
     orderBy: { createdAt: "desc" },
   });
   const ok = searchParams.ok ? OK_TEXT[searchParams.ok] : undefined;
+  const multi = companies.length > 1;
 
   return (
     <div>
@@ -33,23 +34,23 @@ export default async function EmployerJobs({ searchParams }: { searchParams: { o
         <h1 className="text-2xl font-extrabold">Lowongan saya</h1>
         <Link href="/dashboard/employer/jobs/new" className="btn btn-primary">Pasang lowongan</Link>
       </div>
-      {company && (
-        <p className="mb-3 text-sm text-ink/70">
-          {company.name}: <span className="tag">{VERIFICATION_LABEL[company.verification]}</span>
-          {company.verification !== "VERIFIED" && " Lowongan berstatus Menunggu peninjauan akan tayang setelah perusahaan diverifikasi."}
+      {companies.map((c) => (
+        <p key={c.id} className="mb-2 text-sm text-ink/70">
+          {c.name}: <span className="tag">{VERIFICATION_LABEL[c.verification]}</span>
+          {c.verification !== "VERIFIED" && " Lowongan berstatus Menunggu peninjauan akan tayang setelah perusahaan diverifikasi."}
         </p>
-      )}
+      ))}
       {ok && <p role="status" className="mb-3 rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-ink">{ok}</p>}
 
-      {jobs.length === 0 && <p className="panel text-sm">Belum ada lowongan. Klik Pasang lowongan untuk membuat yang pertama.</p>}
+      {jobs.length === 0 && <p className="panel mt-3 text-sm">Belum ada lowongan. Klik Pasang lowongan untuk membuat yang pertama.</p>}
 
-      <div className="space-y-3">
+      <div className="mt-3 space-y-3">
         {jobs.map((j) => (
           <div key={j.id} className="panel flex flex-wrap items-center justify-between gap-3 text-sm">
             <div>
               <p className="font-semibold">{j.title}</p>
               <p className="text-xs text-ink/70">
-                {JOB_TYPE_LABEL[j.jobType]}{j.city ? `, ${j.city}` : ""}, {j._count.applications} pelamar
+                {multi ? `${j.company.name}, ` : ""}{JOB_TYPE_LABEL[j.jobType]}{j.city ? `, ${j.city}` : ""}, {j._count.applications} pelamar
               </p>
               <span className="tag mt-1 inline-block">{JOB_STATUS_LABEL[j.status]}</span>
             </div>

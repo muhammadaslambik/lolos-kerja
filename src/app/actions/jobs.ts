@@ -23,8 +23,8 @@ type JobData = {
   requiredSkills: string[];
 };
 
-function fail(path: string, msg: string): never {
-  redirect(`${path}?error=${encodeURIComponent(msg)}`);
+function fail(path: string, msg: string, companyId = ""): never {
+  redirect(`${path}?error=${encodeURIComponent(msg)}${companyId ? `&c=${encodeURIComponent(companyId)}` : ""}`);
 }
 
 function slugify(t: string) {
@@ -95,26 +95,37 @@ function refresh() {
   revalidatePath("/jobs");
 }
 
-export async function createJob(fd: FormData): Promise<void> {
+// Memasang lowongan untuk usaha tertentu. Bila companyId kosong, dipakai usaha pertama akun ini.
+async function createJobImpl(companyId: string, fd: FormData): Promise<void> {
   const s = await requireRole("EMPLOYER");
   const back = `${LIST}/new`;
-  const company = await db.company.findFirst({ where: { members: { some: { userId: s.uid } } } });
+  const company = companyId
+    ? await db.company.findFirst({ where: { id: companyId, members: { some: { userId: s.uid } } } })
+    : await db.company.findFirst({ where: { members: { some: { userId: s.uid } } }, orderBy: { createdAt: "asc" } });
   if (!company) return fail(back, "Akun Anda belum terhubung ke perusahaan.");
   if (company.verification === "REJECTED" || company.verification === "SUSPENDED") {
-    return fail(back, "Perusahaan Anda tidak dapat memasang lowongan saat ini. Hubungi admin.");
+    return fail(back, "Perusahaan ini tidak dapat memasang lowongan saat ini. Perbaiki data di Profil perusahaan atau hubungi admin.", company.id);
   }
   const r = parseJob(fd);
-  if ("error" in r) return fail(back, r.error);
+  if ("error" in r) return fail(back, r.error, company.id);
 
   const slug = `${slugify(r.data.title)}-${Math.random().toString(36).slice(2, 8)}`;
   const status = company.verification === "VERIFIED" ? "ACTIVE" : "PENDING_REVIEW";
   try {
     await db.job.create({ data: { ...r.data, companyId: company.id, slug, status } });
   } catch {
-    return fail(back, "Gagal menyimpan. Coba lagi sebentar lagi.");
+    return fail(back, "Gagal menyimpan. Coba lagi sebentar lagi.", company.id);
   }
   refresh();
   redirect(`${LIST}?ok=dibuat`);
+}
+
+export async function createJob(fd: FormData): Promise<void> {
+  return createJobImpl("", fd);
+}
+
+export async function createJobForCompany(companyId: string, fd: FormData): Promise<void> {
+  return createJobImpl(companyId, fd);
 }
 
 export async function updateJob(fd: FormData): Promise<void> {

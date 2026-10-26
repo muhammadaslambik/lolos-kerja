@@ -21,10 +21,12 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Profil Perusahaan" };
 
 const PATH = "/dashboard/employer/perusahaan";
+const MAX_COMPANIES = 5;
 
 const OK_MSG: Record<string, string> = {
   saved: "Data tersimpan.",
   submitted: "Permohonan verifikasi terkirim. Admin akan meninjau data Anda.",
+  created: "Usaha baru ditambahkan. Lengkapi datanya lalu ajukan verifikasi.",
 };
 const ERR_MSG: Record<string, string> = {
   nib: "NIB harus 13 digit angka.",
@@ -35,11 +37,22 @@ const ERR_MSG: Record<string, string> = {
   lengkapi: "Data belum lengkap. Lengkapi dulu bagian yang tercantum di daftar kekurangan.",
   ditangguhkan: "Perusahaan Anda sedang ditangguhkan. Hubungi admin.",
   perusahaan: "Akun ini belum memiliki perusahaan.",
+  namaUsaha: "Isi nama usaha minimal 2 karakter.",
+  batas: `Maksimal ${MAX_COMPANIES} usaha per akun.`,
 };
+
+const slugify = (s: string) =>
+  s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "perusahaan";
+const back = (id: string, q: string) => `${PATH}?c=${id}&${q}`;
+
+// Perusahaan yang dimiliki pengguna ini (satu akun boleh mengelola beberapa usaha)
+async function ownedCompany(uid: string, id: string) {
+  return db.company.findFirst({ where: { id, members: { some: { userId: uid } } } });
+}
 
 // Menyimpan isi formulir. Data legalitas dikunci setelah perusahaan terverifikasi.
 async function persist(fd: FormData, uid: string): Promise<{ companyId: string } | { error: string }> {
-  const company = await db.company.findFirst({ where: { members: { some: { userId: uid } } }, orderBy: { createdAt: "asc" } });
+  const company = await ownedCompany(uid, String(fd.get("companyId") ?? ""));
   if (!company) return { error: "perusahaan" };
   const locked = company.verification === "VERIFIED";
   const g = (k: string, max = 200) => String(fd.get(k) ?? "").trim().slice(0, max);
@@ -122,23 +135,25 @@ async function persist(fd: FormData, uid: string): Promise<{ companyId: string }
 async function saveProfile(fd: FormData) {
   "use server";
   const s = await requireRole("EMPLOYER");
+  const cid = String(fd.get("companyId") ?? "");
   const r = await persist(fd, s.uid);
   revalidatePath(PATH);
-  redirect(`${PATH}?${"error" in r ? `error=${r.error}` : "ok=saved"}`);
+  redirect(back(cid, "error" in r ? `error=${r.error}` : "ok=saved"));
 }
 
-async function submitVerification() {
+async function submitVerification(fd: FormData) {
   "use server";
   const s = await requireRole("EMPLOYER");
-  const company = await db.company.findFirst({ where: { members: { some: { userId: s.uid } } }, orderBy: { createdAt: "asc" } });
+  const cid = String(fd.get("companyId") ?? "");
+  const company = await ownedCompany(s.uid, cid);
   if (!company) redirect(`${PATH}?error=perusahaan`);
-  if (company.verification === "SUSPENDED") redirect(`${PATH}?error=ditangguhkan`);
-  if (company.verification === "VERIFIED") redirect(`${PATH}?ok=saved`);
+  if (company.verification === "SUSPENDED") redirect(back(cid, "error=ditangguhkan"));
+  if (company.verification === "VERIFIED") redirect(back(cid, "ok=saved"));
   const [profile, docs] = await Promise.all([
     db.companyProfile.findUnique({ where: { companyId: company.id } }),
     db.companyDocument.findMany({ where: { companyId: company.id }, select: { kind: true } }),
   ]);
-  if (missingFields(company, profile, docs.map((d) => d.kind)).length) redirect(`${PATH}?error=lengkapi`);
+  if (missingFields(company, profile, docs.map((d) => d.kind)).length) redirect(back(cid, "error=lengkapi"));
   const now = new Date();
   await db.$transaction([
     db.company.update({ where: { id: company.id }, data: { verification: "PENDING" } }),
@@ -150,7 +165,25 @@ async function submitVerification() {
   ]);
   revalidatePath(PATH);
   revalidatePath("/dashboard/admin");
-  redirect(`${PATH}?ok=submitted`);
+  redirect(back(cid, "ok=submitted"));
+}
+
+async function addCompany(fd: FormData) {
+  "use server";
+  const s = await requireRole("EMPLOYER");
+  const name = String(fd.get("newName") ?? "").trim().slice(0, 120);
+  if (name.length < 2) redirect(`${PATH}?error=namaUsaha`);
+  const count = await db.companyMember.count({ where: { userId: s.uid } });
+  if (count >= MAX_COMPANIES) redirect(`${PATH}?error=batas`);
+  const created = await db.company.create({
+    data: {
+      name,
+      slug: `${slugify(name)}-${Math.random().toString(36).slice(2, 6)}`,
+      members: { create: { userId: s.uid, memberRole: "owner" } },
+    },
+  });
+  revalidatePath(PATH);
+  redirect(`${PATH}?c=${created.id}&ok=created`);
 }
 
 async function deleteDoc(fd: FormData) {
@@ -197,9 +230,10 @@ function Field({
   );
 }
 
-export default async function CompanyProfilePage({ searchParams }: { searchParams: { ok?: string; error?: string } }) {
+export default async function CompanyProfilePage({ searchParams }: { searchParams: { c?: string; ok?: string; error?: string } }) {
   const s = await requireRole("EMPLOYER");
-  const company = await db.company.findFirst({ where: { members: { some: { userId: s.uid } } }, orderBy: { createdAt: "asc" } });
+  const companies = await db.company.findMany({ where: { members: { some: { userId: s.uid } } }, orderBy: { createdAt: "asc" } });
+  const company = companies.find((x) => x.id === searchParams.c) ?? companies[0];
   if (!company) return <p className="panel text-sm">Akun ini belum memiliki perusahaan.</p>;
 
   const [profile, docs] = await Promise.all([
@@ -228,7 +262,34 @@ export default async function CompanyProfilePage({ searchParams }: { searchParam
       {okMsg && <p role="status" className="rounded-md bg-brand-soft px-3 py-2 text-sm font-medium">{okMsg}</p>}
       {errMsg && <p role="alert" className="rounded-md bg-sun-soft px-3 py-2 text-sm font-medium">{errMsg}</p>}
 
+      <section className="panel space-y-3">
+        <h2 className="font-bold">Usaha yang dikelola</h2>
+        <p className="text-sm text-ink/70">Pilih usaha yang datanya ingin Anda lihat atau ubah.</p>
+        <div className="flex flex-wrap gap-2">
+          {companies.map((c) => (
+            <Link
+              key={c.id}
+              href={`${PATH}?c=${c.id}`}
+              className={`rounded-md border px-3 py-2 text-sm font-semibold ${c.id === company.id ? "border-brand bg-brand-soft text-brand-ink" : "border-line"}`}
+            >
+              {c.name} <span className="tag">{VERIFICATION_LABEL[c.verification]}</span>
+            </Link>
+          ))}
+        </div>
+        <details>
+          <summary className="btn btn-ghost inline-block cursor-pointer list-none !py-1 text-sm [&::-webkit-details-marker]:hidden">Tambah usaha baru</summary>
+          <form action={addCompany} className="mt-3 flex flex-wrap items-end gap-2">
+            <div className="min-w-[14rem] flex-1">
+              <label htmlFor="newName" className="mb-1 block text-sm font-semibold">Nama usaha baru</label>
+              <input id="newName" name="newName" maxLength={120} className="field" />
+            </div>
+            <button className="btn btn-primary">Tambah</button>
+          </form>
+        </details>
+      </section>
+
       <section className="panel space-y-2 text-sm">
+        <p className="font-semibold">Sedang mengedit: {company.name}</p>
         <p>
           Status verifikasi: <span className="tag">{VERIFICATION_LABEL[company.verification]}</span>
           {profile?.submittedAt && <span className="text-ink/60"> (diajukan {formatDateId(profile.submittedAt)})</span>}
@@ -246,7 +307,8 @@ export default async function CompanyProfilePage({ searchParams }: { searchParam
         )}
       </section>
 
-      <form action={saveProfile} className="space-y-6">
+      <form key={company.id} action={saveProfile} className="space-y-6">
+        <input type="hidden" name="companyId" value={company.id} />
         <section className="panel space-y-4">
           <h2 className="font-bold">1. Identitas dan legalitas</h2>
           <div className="grid gap-4 md:grid-cols-2">
@@ -347,7 +409,7 @@ export default async function CompanyProfilePage({ searchParams }: { searchParam
         ) : (
           <p className="text-sm text-ink/60">Belum ada dokumen.</p>
         )}
-        <CompanyDocUpload companyId={company.id} kinds={DOC_KINDS} maxMb={MAX_DOC_MB} />
+        <CompanyDocUpload key={company.id} companyId={company.id} kinds={DOC_KINDS} maxMb={MAX_DOC_MB} />
       </section>
 
       {!locked && company.verification !== "SUSPENDED" && (
@@ -364,6 +426,7 @@ export default async function CompanyProfilePage({ searchParams }: { searchParam
             <p className="text-sm">Data sudah lengkap. Pastikan sudah tersimpan, lalu ajukan ke admin.</p>
           )}
           <form action={submitVerification}>
+            <input type="hidden" name="companyId" value={company.id} />
             <button disabled={missing.length > 0} className="btn btn-primary">
               {company.verification === "REJECTED" ? "Ajukan ulang verifikasi" : "Ajukan verifikasi"}
             </button>
