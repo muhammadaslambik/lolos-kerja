@@ -6,10 +6,16 @@ export type NavItem = { href: string; label: string };
 
 export default function NavLinks({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
+  const matches = (href: string) =>
+    href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
+  // Bila beberapa menu cocok (misalnya Dasbor dan Profil perusahaan), hanya yang alamatnya paling spesifik yang aktif
+  const best = items
+    .filter((i) => matches(i.href))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
   return (
     <ul className="flex items-stretch gap-1 overflow-x-auto">
       {items.map((item) => {
-        const active = item.href === "/" ? pathname === "/" : pathname === item.href || pathname.startsWith(item.href + "/");
+        const active = item.href === best;
         return (
           <li key={item.href} className="flex">
             <Link
