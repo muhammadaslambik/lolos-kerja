@@ -13,7 +13,7 @@ export default async function CourseDetail({
   searchParams,
 }: {
   params: { slug: string };
-  searchParams: { error?: string; selesai?: string };
+  searchParams: { error?: string; selesai?: string; hasil?: string; skor?: string; benar?: string; total?: string };
 }) {
   const course = await db.course.findFirst({
     where: { slug: params.slug, published: true },
@@ -42,6 +42,14 @@ export default async function CourseDetail({
   const nextLesson = flat.find((l) => !done.has(l.id)) ?? flat[0];
   const quizCount = enrollment ? await db.quiz.count({ where: { module: { courseId: course.id } } }) : 0;
   const certificate = enrollment ? await db.certificate.findUnique({ where: { enrollmentId: enrollment.id } }) : null;
+  const skor = Number(searchParams.skor);
+  const benar = Number(searchParams.benar);
+  const total = Number(searchParams.total);
+  const showResult =
+    !!enrollment &&
+    (searchParams.hasil === "lulus" || searchParams.hasil === "belum") &&
+    [skor, benar, total].every(Number.isFinite);
+  const perfect = enrollment?.finalScore === 100;
 
   return (
     <div className="max-w-3xl">
@@ -63,6 +71,18 @@ export default async function CourseDetail({
         </p>
       )}
 
+      {showResult && searchParams.hasil === "lulus" && (
+        <p role="status" className="mt-3 rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-ink">
+          Selamat, Anda lulus. Benar {benar} dari {total} soal, nilai {skor}. Sertifikat Anda bisa diunduh di bawah.
+          {skor < 100 && " Anda masih bisa mengulang kuis untuk mengejar nilai sempurna."}
+        </p>
+      )}
+      {showResult && searchParams.hasil === "belum" && (
+        <p role="alert" className="mt-3 rounded-md border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-600">
+          Belum lulus. Benar {benar} dari {total} soal, nilai {skor} (nilai lulus {course.passScore}). Pelajari materinya lagi, lalu tekan Ulangi kuis akhir.
+        </p>
+      )}
+
       <div className="panel mt-4">
         {enrollment ? (
           <div>
@@ -79,18 +99,29 @@ export default async function CourseDetail({
                 <p className="text-sm font-medium">
                   Kuis akhir{" "}
                   {enrollment.status === "completed" && <span className="tag">Lulus</span>}
+                  {enrollment.status !== "completed" && enrollment.finalScore !== null && <span className="tag">Belum lulus</span>}
+                  {perfect && <span className="tag">Nilai sempurna</span>}
                 </p>
                 {enrollment.finalScore !== null && (
                   <p className="mt-1 text-xs text-ink/60">Nilai terbaik: {enrollment.finalScore}. Nilai lulus: {course.passScore}.</p>
                 )}
-                <Link href={`/courses/${course.slug}/kuis`} className="btn btn-primary mt-2 inline-block">
-                  {enrollment.finalScore === null ? "Kerjakan kuis akhir" : "Ulangi kuis akhir"}
-                </Link>
+                {perfect ? (
+                  <Link href={`/courses/${course.slug}/jawaban`} className="btn btn-primary mt-2 inline-block">
+                    Lihat jawaban
+                  </Link>
+                ) : (
+                  <Link href={`/courses/${course.slug}/kuis`} className="btn btn-primary mt-2 inline-block">
+                    {enrollment.finalScore === null ? "Kerjakan kuis akhir" : "Ulangi kuis akhir"}
+                  </Link>
+                )}
               </div>
             )}
             {enrollment.status === "completed" && (
               <div className="mt-4 border-t border-line pt-3">
                 <p className="text-sm font-medium">Sertifikat</p>
+                {enrollment.finalScore !== null && (
+                  <p className="mt-1 text-xs text-ink/60">Nilai yang tercantum pada sertifikat: {enrollment.finalScore}.</p>
+                )}
                 {certificate ? (
                   <div className="mt-2 flex flex-wrap gap-2">
                     <a href={`/api/certificates/${certificate.code}/pdf`} className="btn btn-primary">Unduh sertifikat PDF</a>

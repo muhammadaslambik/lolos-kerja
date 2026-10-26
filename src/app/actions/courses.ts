@@ -100,7 +100,8 @@ export async function submitQuiz(fd: FormData): Promise<void> {
   if (passed) await issueCertificate(enrollment.id);
   revalidatePath("/dashboard/seeker");
   revalidatePath(`/courses/${slug}`);
-  redirect(`/courses/${slug}/kuis?benar=${correct}&total=${questions.length}&skor=${score}`);
+  // Selesai mengerjakan: kembali ke halaman kelas (materi, kuis, dan sertifikat)
+  redirect(`/courses/${slug}?hasil=${passed ? "lulus" : "belum"}&benar=${correct}&total=${questions.length}&skor=${score}`);
 }
 
 export async function claimCertificate(fd: FormData): Promise<void> {
