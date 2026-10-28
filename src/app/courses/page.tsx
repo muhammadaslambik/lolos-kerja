@@ -2,6 +2,7 @@ import Link from "next/link";
 import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
 import { rupiah } from "@/lib/constants";
+import CertVerifyButton from "@/components/CertVerifyButton";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Kelas Pelatihan" };
@@ -20,7 +21,10 @@ export default async function Courses() {
   const courses = await getCourses();
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-extrabold">Kelas pelatihan</h1>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-2xl font-extrabold">Kelas pelatihan</h1>
+        <CertVerifyButton />
+      </div>
       <div className="grid gap-4 md:grid-cols-3">
         {courses.map((c) => (
           <div key={c.id} className="panel flex flex-col">

@@ -22,6 +22,9 @@ export default async function VerifyPage({ params }: { params: { code: string } 
           </p>
           <p><span className="text-ink/70">Nama penerima:</span> <span className="font-semibold">{cert.enrollment.user.fullName}</span></p>
           <p><span className="text-ink/70">Kelas:</span> <span className="font-semibold">{cert.enrollment.course.title}</span></p>
+          {cert.enrollment.finalScore !== null && (
+            <p><span className="text-ink/70">Nilai akhir:</span> {cert.enrollment.finalScore}</p>
+          )}
           <p><span className="text-ink/70">Tanggal terbit:</span> {formatDateId(cert.issuedAt)}</p>
           <p><span className="text-ink/70">Kode:</span> {cert.code}</p>
           <a href={`/api/certificates/${cert.code}/pdf`} className="btn btn-primary mt-2 inline-block">Unduh sertifikat PDF</a>
