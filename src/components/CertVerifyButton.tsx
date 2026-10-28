@@ -5,6 +5,7 @@ type Result =
   | { kind: "idle" }
   | { kind: "loading" }
   | { kind: "found"; name: string; course: string; score: number | null; issuedAt: string; code: string }
+  | { kind: "names"; matches: { name: string; course: string; issuedAt: string }[]; more: boolean }
   | { kind: "missing"; message: string }
   | { kind: "error"; message: string };
 
@@ -37,7 +38,7 @@ export default function CertVerifyButton() {
     e.preventDefault();
     const v = q.trim();
     if (!v) {
-      setRes({ kind: "missing", message: "Tempel URL atau kode sertifikat dulu." });
+      setRes({ kind: "missing", message: "Tempel URL, kode, atau tulis nama penerima dulu." });
       return;
     }
     setRes({ kind: "loading" });
@@ -51,11 +52,16 @@ export default function CertVerifyButton() {
         score?: number | null;
         issuedAt?: string;
         code?: string;
+        mode?: string;
+        more?: boolean;
+        matches?: { name: string; course: string; issuedAt: string }[];
       };
       if (r.status === 429) {
         setRes({ kind: "error", message: j.message ?? "Terlalu banyak percobaan. Coba lagi beberapa menit lagi." });
       } else if (!r.ok) {
         setRes({ kind: "error", message: "Pemeriksaan gagal. Coba lagi sebentar lagi." });
+      } else if (j.found && j.mode === "name" && j.matches) {
+        setRes({ kind: "names", matches: j.matches, more: !!j.more });
       } else if (j.found && j.code) {
         setRes({
           kind: "found",
@@ -92,10 +98,10 @@ export default function CertVerifyButton() {
               &times;
             </button>
             <h2 id="cert-check-title" className="pr-10 text-lg font-extrabold">Verifikasi sertifikat</h2>
-            <p className="mt-1 text-sm text-ink/70">Tempel URL atau kode sertifikat untuk mengecek keasliannya.</p>
+            <p className="mt-1 text-sm text-ink/70">Cek keaslian dengan nama lengkap penerima, kode, URL verifikasi, atau URL unduhan PDF sertifikat.</p>
 
             <form onSubmit={check} className="mt-3 space-y-2">
-              <label htmlFor="cert-q" className="block text-sm font-semibold">URL atau kode sertifikat</label>
+              <label htmlFor="cert-q" className="block text-sm font-semibold">Nama, kode, atau URL sertifikat</label>
               <input
                 id="cert-q"
                 ref={inputRef}
@@ -104,7 +110,7 @@ export default function CertVerifyButton() {
                   setQ(e.target.value);
                   if (res.kind !== "idle") setRes({ kind: "idle" });
                 }}
-                placeholder="LK-ABCDE-FGHJK atau https://.../verify/LK-..."
+                placeholder="Nama lengkap, LK-ABCDE-FGHJK, atau URL"
                 maxLength={300}
                 autoComplete="off"
                 spellCheck={false}
@@ -125,6 +131,24 @@ export default function CertVerifyButton() {
                   <p><span className="text-ink/70">Tanggal terbit:</span> {res.issuedAt}</p>
                   <p><span className="text-ink/70">Kode:</span> {res.code}</p>
                   <a href={`/verify/${res.code}`} className="mt-1 inline-block underline">Buka halaman verifikasi</a>
+                </div>
+              )}
+              {res.kind === "names" && (
+                <div className="space-y-2 rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm">
+                  <p className="font-semibold">
+                    Sertifikat ASLI. Ditemukan {res.matches.length}{res.more ? "+" : ""} sertifikat atas nama ini.
+                  </p>
+                  <ul className="space-y-2">
+                    {res.matches.map((m, i) => (
+                      <li key={i} className="rounded-md bg-surface/60 p-2">
+                        <p className="font-semibold">{m.name}</p>
+                        <p>{m.course}</p>
+                        <p className="text-xs text-ink/70">Diterbitkan {m.issuedAt}</p>
+                      </li>
+                    ))}
+                  </ul>
+                  {res.more && <p className="text-xs text-ink/70">Masih ada sertifikat lain. Gunakan kode atau URL untuk memeriksa yang spesifik.</p>}
+                  <p className="text-xs text-ink/70">Untuk melihat atau mengunduh sertifikatnya, minta kode atau URL dari pemiliknya.</p>
                 </div>
               )}
               {res.kind === "missing" && (
