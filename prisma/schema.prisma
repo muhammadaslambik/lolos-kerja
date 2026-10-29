@@ -345,3 +345,14 @@ model LearningVideo {
   createdAt DateTime @default(now())
   @@index([kind, refId])
 }
+
+model QuizAttempt {
+  id           String   @id @default(cuid())
+  enrollmentId String
+  score        Int
+  correct      Int
+  total        Int
+  answers      Json     // [{ topic, q, chosen, right, ok }]
+  createdAt    DateTime @default(now())
+  @@index([enrollmentId])
+}

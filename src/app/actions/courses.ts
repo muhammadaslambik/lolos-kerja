@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/session";
-import { loadQuestions, orderedLessons } from "@/lib/course-utils";
+import type { Prisma } from "@prisma/client";
+import { orderedLessons } from "@/lib/course-utils";
+import { loadQuestionsWithTopic } from "@/lib/quiz-topics";
 import { issueCertificate } from "@/lib/certificate";
 
 export async function enrollCourse(fd: FormData): Promise<void> {
@@ -75,7 +77,7 @@ export async function submitQuiz(fd: FormData): Promise<void> {
 
   const [lessons, questions, done] = await Promise.all([
     orderedLessons(course.id),
-    loadQuestions(course.id),
+    loadQuestionsWithTopic(course.id),
     db.lessonProgress.count({
       where: { enrollmentId: enrollment.id, lesson: { module: { courseId: course.id } } },
     }),
@@ -83,9 +85,19 @@ export async function submitQuiz(fd: FormData): Promise<void> {
   if (questions.length === 0 || done < lessons.length) return redirect(`/courses/${slug}`);
 
   let correct = 0;
+  const answers: { topic: string; q: string; chosen: string | null; right: string; ok: boolean }[] = [];
   questions.forEach((q, i) => {
     const raw = fd.get(`q${i}`);
-    if (raw !== null && String(raw) !== "" && Number(raw) === q.answerIdx) correct += 1;
+    const idx = raw !== null && String(raw) !== "" ? Number(raw) : -1;
+    const ok = idx === q.answerIdx;
+    if (ok) correct += 1;
+    answers.push({
+      topic: q.topic,
+      q: q.q,
+      chosen: idx >= 0 && idx < q.options.length ? q.options[idx] : null,
+      right: q.options[q.answerIdx] ?? "",
+      ok,
+    });
   });
   const score = Math.round((correct / questions.length) * 100);
   const passed = score >= course.passScore;
@@ -97,6 +109,20 @@ export async function submitQuiz(fd: FormData): Promise<void> {
       ...(passed && enrollment.status !== "completed" ? { status: "completed", completedAt: new Date() } : {}),
     },
   });
+  // Catat rincian jawaban untuk analisis kemampuan. Bila gagal, hasil kuis tetap tersimpan.
+  try {
+    await db.quizAttempt.create({
+      data: {
+        enrollmentId: enrollment.id,
+        score,
+        correct,
+        total: questions.length,
+        answers: answers as unknown as Prisma.InputJsonValue,
+      },
+    });
+  } catch {
+    // dilewati
+  }
   if (passed) await issueCertificate(enrollment.id);
   revalidatePath("/dashboard/seeker");
   revalidatePath(`/courses/${slug}`);
