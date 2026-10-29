@@ -141,7 +141,12 @@ export default async function CourseDetail({
         ) : s.role !== "SEEKER" ? (
           <p className="text-sm">
             Hanya akun pelamar yang dapat mendaftar kelas.
-            {isAdmin && " Sebagai admin, buka salah satu pelajaran di bawah untuk melihat pratinjau dan mengatur video."}
+            {isAdmin && (
+              <>
+                {" "}Sebagai admin, buka pelajaran di bawah untuk pratinjau, atau{" "}
+                <Link href={`/dashboard/admin/kelas/${course.id}`} className="underline">kelola isi kelas</Link>.
+              </>
+            )}
           </p>
         ) : course.price > 0 ? (
           <p className="text-sm">Kelas berbayar belum tersedia. Pembayaran sedang disiapkan.</p>

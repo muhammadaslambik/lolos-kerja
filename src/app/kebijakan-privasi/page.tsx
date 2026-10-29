@@ -99,6 +99,11 @@ export default function KebijakanPrivasiPage() {
           pembayaran. Kami tidak menyimpan nomor kartu Anda.
         </li>
         <li>
+          <strong>Siapa pun yang memeriksa sertifikat:</strong> keaslian sertifikat dapat dicek publik lewat kode, URL
+          verifikasi, atau nama lengkap penerima. Pencarian lewat nama hanya menampilkan nama, kelas, dan tanggal
+          terbit, tanpa kode dan tanpa nilai. Nilai dan berkas sertifikat hanya terlihat oleh yang memegang kodenya.
+        </li>
+        <li>
           <strong>Pihak berwenang:</strong> bila diwajibkan oleh hukum atau perintah yang sah.
         </li>
         <li>

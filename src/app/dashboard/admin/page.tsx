@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/session";
@@ -167,7 +168,10 @@ export default async function AdminDashboard() {
   ];
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-extrabold">Ringkasan platform</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-2xl font-extrabold">Ringkasan platform</h1>
+        <Link href="/dashboard/admin/kelas" className="btn btn-primary">Kelola kelas</Link>
+      </div>
       <AdminStats cards={cards} />
       <section className="panel">
         <h2 className="font-bold">Perusahaan menunggu verifikasi</h2>

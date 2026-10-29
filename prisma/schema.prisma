@@ -334,3 +334,14 @@ model CompanyDocument {
   createdAt DateTime @default(now())
   @@index([companyId])
 }
+
+model LearningVideo {
+  id        String   @id @default(cuid())
+  kind      String   // LESSON (pelajaran) atau QUIZ (kuis modul)
+  refId     String   // id pelajaran, atau id modul untuk kuis
+  youtubeId String
+  title     String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  @@index([kind, refId])
+}

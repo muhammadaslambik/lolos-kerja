@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { requireRole } from "@/lib/session";
 import { loadQuestions, orderedLessons } from "@/lib/course-utils";
 import { submitQuiz } from "@/app/actions/courses";
+import VideoEmbed from "@/components/VideoEmbed";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Kuis Akhir" };
@@ -29,6 +30,20 @@ export default async function QuizPage({ params }: { params: { slug: string } })
   ]);
   if (questions.length === 0 || done < lessons.length) redirect(`/courses/${course.slug}`);
 
+  // Video pendukung kuis, dikelompokkan per modul
+  const mods = await db.module.findMany({
+    where: { courseId: course.id },
+    orderBy: { sortOrder: "asc" },
+    select: { id: true, title: true },
+  });
+  const quizVideos = await db.learningVideo.findMany({
+    where: { kind: "QUIZ", refId: { in: mods.map((m) => m.id) } },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+  });
+  const videoGroups = mods
+    .map((m) => ({ title: m.title, items: quizVideos.filter((v) => v.refId === m.id) }))
+    .filter((g) => g.items.length > 0);
+
   return (
     <div className="max-w-3xl">
       <p className="mb-2 text-sm"><Link href={`/courses/${course.slug}`} className="underline">Kembali ke {course.title}</Link></p>
@@ -37,6 +52,22 @@ export default async function QuizPage({ params }: { params: { slug: string } })
         {questions.length} soal pilihan ganda. Nilai lulus {course.passScore}. Kuis boleh diulang sampai nilai Anda sempurna.
         {enrollment.finalScore !== null && ` Nilai terbaik Anda: ${enrollment.finalScore}.`}
       </p>
+
+      {videoGroups.length > 0 && (
+        <section className="panel mt-4 space-y-3">
+          <h2 className="font-bold">Video pendukung kuis</h2>
+          {videoGroups.map((g) => (
+            <details key={g.title} open className="rounded-md border border-line p-3">
+              <summary className="cursor-pointer text-sm font-semibold">{g.title}</summary>
+              <div className="mt-3">
+                {g.items.map((v) => (
+                  <VideoEmbed key={v.id} id={v.youtubeId} title={v.title} label={`Video kuis: ${g.title}`} />
+                ))}
+              </div>
+            </details>
+          ))}
+        </section>
+      )}
 
       <form action={submitQuiz} className="mt-4 space-y-4">
         <input type="hidden" name="slug" value={course.slug} />

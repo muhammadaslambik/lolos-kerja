@@ -16,6 +16,7 @@ export default async function Header() {
   ];
   if (s) items.push({ href: dashboardPath(s.role), label: "Dasbor" });
   if (s?.role === "EMPLOYER") items.push({ href: "/dashboard/employer/perusahaan", label: "Profil perusahaan" });
+  if (s?.role === "ADMIN") items.push({ href: "/dashboard/admin/kelas", label: "Kelola kelas" });
 
   // Tombol ganti peran: Pelamar boleh ke Perusahaan bila sudah punya perusahaan;
   // Perusahaan boleh ke Pelamar kapan saja. Admin tidak mendapat tombol ini.
