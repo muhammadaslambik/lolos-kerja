@@ -42,6 +42,7 @@ export default function NotificationListener() {
   const prevTotal = useRef<number | null>(null);
   const lastActive = useRef(Date.now());
   const pausedRef = useRef(false);
+  const boxRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
     try {
@@ -103,6 +104,24 @@ export default function NotificationListener() {
     void load();
   }, [pathname, load]);
 
+  // Tutup jendela Pesan saat pengguna menyentuh atau mengeklik di luarnya (desktop dan HP), atau menekan Esc
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const box = boxRef.current;
+      if (box && e.target instanceof Node && !box.contains(e.target)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   useEffect(() => {
     const resume = () => {
       lastActive.current = Date.now();
@@ -144,7 +163,7 @@ export default function NotificationListener() {
   const total = summary.total;
 
   return (
-    <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2">
+    <div ref={boxRef} className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2">
       {toast && (
         <div role="status" className="max-w-xs rounded-md border border-line bg-surface px-3 py-2 text-sm shadow-lg">
           {toast}
