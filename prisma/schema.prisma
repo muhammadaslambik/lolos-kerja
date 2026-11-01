@@ -356,3 +356,18 @@ model QuizAttempt {
   createdAt    DateTime @default(now())
   @@index([enrollmentId])
 }
+
+model SupportMessage {
+  id           String    @id @default(cuid())
+  userId       String    // pemilik percakapan: pengguna (pelamar atau perusahaan)
+  senderId     String    // pengirim: pengguna itu sendiri atau seorang admin
+  fromAdmin    Boolean   @default(false)
+  kind         String    @default("text") // text | voice | call
+  body         String?
+  audio        Bytes?
+  audioMime    String?
+  audioSeconds Int?
+  createdAt    DateTime  @default(now())
+  readAt       DateTime?
+  @@index([userId, createdAt])
+}

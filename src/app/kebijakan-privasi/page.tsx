@@ -121,7 +121,7 @@ export default function KebijakanPrivasiPage() {
 
       <h2 className={H2}>6. Pesan, pesan suara, dan panggilan</h2>
       <p className={P}>
-        Pesan teks dan pesan suara disimpan agar percakapan dapat dibaca kembali oleh pihak yang terlibat. Panggilan
+        Pesan teks dan pesan suara disimpan agar percakapan dapat dibaca kembali oleh pihak yang terlibat. Percakapan Anda dengan admin Lolos Kerja (menu Bantuan, termasuk ajakan panggilan) hanya dapat dibaca oleh Anda dan admin, dan dipakai untuk membantu menyelesaikan kendala Anda. Panggilan
         suara dan video berjalan lewat layanan Jitsi di dalam halaman website. Lolos Kerja tidak merekam panggilan.
         Jangan membagikan data yang sangat sensitif (misalnya nomor kartu atau kata sandi) lewat pesan.
       </p>

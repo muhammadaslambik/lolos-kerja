@@ -18,6 +18,24 @@ export default async function Header() {
   if (s?.role === "EMPLOYER") items.push({ href: "/dashboard/employer/perusahaan", label: "Profil perusahaan" });
   if (s?.role === "ADMIN") items.push({ href: "/dashboard/admin/kelas", label: "Kelola kelas" });
 
+  // Pesan bantuan yang belum dibaca. Dianggap 0 bila tabelnya belum ada.
+  let supportUnread = 0;
+  if (s) {
+    try {
+      supportUnread =
+        s.role === "ADMIN"
+          ? await db.supportMessage.count({ where: { fromAdmin: false, readAt: null } })
+          : await db.supportMessage.count({ where: { userId: s.uid, fromAdmin: true, readAt: null } });
+    } catch {
+      supportUnread = 0;
+    }
+    const label = s.role === "ADMIN" ? "Pesan" : "Bantuan";
+    items.push({
+      href: s.role === "ADMIN" ? "/dashboard/admin/pesan" : "/bantuan",
+      label: supportUnread > 0 ? `${label} (${supportUnread})` : label,
+    });
+  }
+
   // Tombol ganti peran: Pelamar boleh ke Perusahaan bila sudah punya perusahaan;
   // Perusahaan boleh ke Pelamar kapan saja. Admin tidak mendapat tombol ini.
   let switchTo: "SEEKER" | "EMPLOYER" | null = null;

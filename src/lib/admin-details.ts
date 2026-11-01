@@ -201,7 +201,12 @@ export async function loadAdminOverview(): Promise<{ cards: Card[]; details: Rec
         },
       });
     }
-    details[`u:${u.id}`] = { title: u.fullName, subtitle: u.email, blocks };
+    details[`u:${u.id}`] = {
+      title: u.fullName,
+      subtitle: u.email,
+      blocks,
+      links: u.role === "ADMIN" ? undefined : [{ label: "Kirim pesan, telepon, atau video call", href: `/dashboard/admin/pesan/${u.id}` }],
+    };
   }
 
   // ---------- Lowongan ----------
