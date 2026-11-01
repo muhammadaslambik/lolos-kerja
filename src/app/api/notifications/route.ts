@@ -23,9 +23,9 @@ async function adminSummary() {
     });
     const ids = groups.map((g) => g.userId);
     const users = ids.length
-      ? await db.user.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } })
+      ? await db.user.findMany({ where: { id: { in: ids } }, select: { id: true, fullName: true } })
       : [];
-    const names = new Map(users.map((u) => [u.id, u.name]));
+    const names = new Map(users.map((u) => [u.id, u.fullName]));
     const items = groups.map((g) => ({
       applicationId: g.userId,
       title: names.get(g.userId) ?? "Pengguna",
