@@ -17,17 +17,20 @@ export default async function Header() {
   if (s) items.push({ href: dashboardPath(s.role), label: "Dasbor" });
   if (s?.role === "EMPLOYER") items.push({ href: "/dashboard/employer/perusahaan", label: "Profil perusahaan" });
 
-  // Menu Bantuan hanya untuk pengguna biasa. Admin memakai tombol Pesan mengambang.
-  if (s && s.role !== "ADMIN") {
-    // Pesan bantuan dari admin yang belum dibaca. Dianggap 0 bila tabelnya belum ada.
+  // Menu Bantuan: pengguna biasa membuka percakapannya sendiri, admin membuka kotak pesan
+  // untuk membantu pengguna. Angka = pesan bantuan yang belum dibaca (0 bila tabel belum ada).
+  if (s) {
     let supportUnread = 0;
     try {
-      supportUnread = await db.supportMessage.count({ where: { userId: s.uid, fromAdmin: true, readAt: null } });
+      supportUnread =
+        s.role === "ADMIN"
+          ? await db.supportMessage.count({ where: { fromAdmin: false, readAt: null } })
+          : await db.supportMessage.count({ where: { userId: s.uid, fromAdmin: true, readAt: null } });
     } catch {
       supportUnread = 0;
     }
     items.push({
-      href: "/bantuan",
+      href: s.role === "ADMIN" ? "/dashboard/admin/pesan" : "/bantuan",
       label: supportUnread > 0 ? `Bantuan (${supportUnread})` : "Bantuan",
     });
   }
